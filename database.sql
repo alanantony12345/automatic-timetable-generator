@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+<<<<<<< HEAD
     role ENUM('Admin', 'Faculty', 'Student', 'Others') DEFAULT 'Student',
     student_id VARCHAR(50),
     register_number VARCHAR(50),
@@ -94,3 +95,7 @@ CREATE TABLE IF NOT EXISTS timetables (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES departments(id)
 );
+=======
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6

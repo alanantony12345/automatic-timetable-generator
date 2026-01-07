@@ -3,6 +3,7 @@ require 'config/db.php';
 require 'includes/header.php';
 
 $message = '';
+<<<<<<< HEAD
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -53,6 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $error = "Email address not found.";
     }
+=======
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $email = $_POST['email'];
+    // No validation or actual logic required beyond showing the message for this task
+    $message = "the password can be reset successfully........";
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
 }
 ?>
 
@@ -60,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="max-w-md mx-auto mt-12">
         <div class="card p-10">
             <h2 class="text-3xl font-bold text-center mb-8 gradient-text">Reset Password</h2>
+<<<<<<< HEAD
             <p class="text-center text-gray-600 mb-10">Enter your registered email address</p>
 
             <?php if ($message): ?>
@@ -71,21 +80,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php if ($error): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
                     <?php echo $error; ?>
+=======
+            <p class="text-center text-gray-600 mb-10">Enter your email to reset your password</p>
+
+            <?php if ($message): ?>
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6"
+                    role="alert">
+                    <span class="block sm:inline"><?php echo $message; ?></span>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                 </div>
             <?php endif; ?>
 
             <form action="forgot_password.php" method="POST">
                 <div class="mb-6">
+<<<<<<< HEAD
                     <label class="block text-gray-700 font-medium mb-2" for="reset-email">Enter your registered email
                         address</label>
                     <input type="email" id="reset-email" name="email"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-600 transition"
                         placeholder="alanantony2028@mca.ajce.in" required>
+=======
+                    <label class="block text-gray-700 font-medium mb-2" for="reset-email">Email Address</label>
+                    <input type="email" id="reset-email" name="email"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-600 transition"
+                        placeholder="admin@example.com" required>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                 </div>
 
                 <button type="submit"
                     class="w-full btn-gradient text-white py-4 rounded-lg font-semibold shadow-lg mb-6">
+<<<<<<< HEAD
                     Send Reset Link
+=======
+                    Reset Password
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                 </button>
             </form>
 

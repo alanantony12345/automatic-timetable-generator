@@ -10,8 +10,12 @@
     <title>AutoTime - Automatic Timetable Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<<<<<<< HEAD
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@400;500&display=swap"
+=======
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
         rel="stylesheet">
     <style>
         body {
@@ -66,6 +70,7 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
+<<<<<<< HEAD
             padding: 12px 16px;
             background-color: #ffffff;
             border: 1px solid #747775;
@@ -90,6 +95,23 @@
         .google-btn:active {
             background-color: #dfe1e5;
             box-shadow: none;
+=======
+            padding: 12px;
+            background-color: #ffffff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #3c4043;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .google-btn:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
         }
 
         .google-btn img {
@@ -115,6 +137,7 @@
             </div>
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center space-x-8">
+<<<<<<< HEAD
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <a href="index.php" class="font-medium hover:text-purple-600 transition">Home</a>
                 <?php endif; ?>
@@ -156,6 +179,11 @@
                     }
                     ?>
                     <a href="<?php echo $dashboard_url; ?>"
+=======
+                <a href="index.php" class="font-medium hover:text-purple-600 transition">Home</a>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="dashboard.php"
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                         class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold shadow-lg">Dashboard</a>
                     <a href="logout.php" class="font-medium hover:text-purple-600 transition">Logout</a>
                 <?php else: ?>
@@ -170,6 +198,7 @@
         </div>
         <!-- Mobile Menu -->
         <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-gray-200 px-6 py-4 space-y-3 shadow-lg">
+<<<<<<< HEAD
             <?php if (isset($_SESSION['user_id'])): ?>
                 <a href="index.php" class="block w-full text-left py-2 font-medium">Home</a>
             <?php endif; ?>
@@ -208,6 +237,11 @@
                 ?>
                 <a href="<?php echo $dashboard_url; ?>"
                     class="block w-full text-left py-2 text-purple-600 font-bold">Dashboard</a>
+=======
+            <a href="index.php" class="block w-full text-left py-2 font-medium">Home</a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="dashboard.php" class="block w-full text-left py-2 text-purple-600 font-bold">Dashboard</a>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                 <a href="logout.php" class="block w-full text-left py-2 font-medium">Logout</a>
             <?php else: ?>
                 <a href="login.php" class="block w-full text-left py-2 font-medium">Login</a>

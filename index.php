@@ -210,8 +210,12 @@
         <div class="text-center mb-20">
             <h2 class="text-base text-indigo-600 font-bold tracking-wide uppercase mb-2">Visual Tour</h2>
             <h3 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">Experience the Interface</h3>
+<<<<<<< HEAD
             <p class="text-xl text-gray-600 max-w-3xl mx-auto">Designed for clarity, efficiency, and ease of use. Take a
                 closer look at our key screens.</p>
+=======
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">Designed for clarity, efficiency, and ease of use. Take a closer look at our key screens.</p>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
         </div>
 
         <div class="space-y-32">
@@ -219,6 +223,7 @@
             <div class="flex flex-col md:flex-row items-center gap-16">
                 <div class="md:w-1/2">
                     <div class="relative group perspective-1000">
+<<<<<<< HEAD
                         <div
                             class="absolute -inset-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition duration-500">
                         </div>
@@ -226,6 +231,11 @@
                             class="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-white transform transition duration-500 group-hover:rotate-y-2">
                             <img src="assets/images/setup-ui.png" alt="Timetable Constraints Setup"
                                 class="w-full h-auto">
+=======
+                        <div class="absolute -inset-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                        <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-white transform transition duration-500 group-hover:rotate-y-2">
+                           <img src="assets/images/setup-ui.png" alt="Timetable Constraints Setup" class="w-full h-auto">
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                         </div>
                         <!-- Floating Badge -->
                         <div class="absolute -top-6 -right-6 bg-white p-4 rounded-xl shadow-xl animate-float">
@@ -239,8 +249,12 @@
                     </div>
                     <h3 class="text-3xl font-bold text-gray-900 mb-6">Intuitive Constraint Management</h3>
                     <p class="text-lg text-gray-600 leading-relaxed mb-8">
+<<<<<<< HEAD
                         Stop fighting with complex spreadsheets. Our modern interface lets you easily define rules for
                         professors, rooms, and subjects using simple toggles and dropdowns.
+=======
+                        Stop fighting with complex spreadsheets. Our modern interface lets you easily define rules for professors, rooms, and subjects using simple toggles and dropdowns.
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                     </p>
                     <ul class="space-y-4">
                         <li class="flex items-start">
@@ -263,6 +277,7 @@
             <div class="flex flex-col md:flex-row-reverse items-center gap-16">
                 <div class="md:w-1/2">
                     <div class="relative group perspective-1000">
+<<<<<<< HEAD
                         <div
                             class="absolute -inset-4 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition duration-500">
                         </div>
@@ -273,6 +288,14 @@
                         <!-- Floating Badge -->
                         <div
                             class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl animate-float animation-delay-2000">
+=======
+                        <div class="absolute -inset-4 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                        <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-white transform transition duration-500 group-hover:-rotate-y-2">
+                           <img src="assets/images/result-view.png" alt="Timetable Grid View" class="w-full h-auto">
+                        </div>
+                         <!-- Floating Badge -->
+                         <div class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl animate-float animation-delay-2000">
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                             <i class="fas fa-table text-2xl text-blue-500"></i>
                         </div>
                     </div>
@@ -283,17 +306,55 @@
                     </div>
                     <h3 class="text-3xl font-bold text-gray-900 mb-6">Clear, Color-Coded Schedules</h3>
                     <p class="text-lg text-gray-600 leading-relaxed mb-8">
+<<<<<<< HEAD
                         Visualize your entire week at a glance. Our intelligent color-coding system instantly
                         differentiates between departments, lecture types, and lab sessions.
                     </p>
                     <a href="#" class="text-blue-600 font-bold hover:text-blue-800 transition flex items-center group">
                         See Example Timetable <i
                             class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition"></i>
+=======
+                        Visualize your entire week at a glance. Our intelligent color-coding system instantly differentiates between departments, lecture types, and lab sessions.
+                    </p>
+                    <a href="#" class="text-blue-600 font-bold hover:text-blue-800 transition flex items-center group">
+                        See Example Timetable <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition"></i>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
                     </a>
                 </div>
             </div>
 
+<<<<<<< HEAD
 
+=======
+             <!-- Showcase Item 3: Mobile View -->
+             <div class="flex flex-col md:flex-row items-center gap-16">
+                <div class="w-full text-center max-w-4xl mx-auto">
+                    <div class="inline-block p-3 rounded-xl bg-pink-50 text-pink-600 mb-6">
+                        <i class="fas fa-mobile-alt text-xl"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900 mb-6">Access Anywhere, Anytime</h3>
+                    <p class="text-lg text-gray-600 leading-relaxed mb-8">
+                        Don't just print it — publish it. Students and faculty can access their personalized schedules continuously updated on any mobile device.
+                    </p>
+                    <div class="flex gap-4 justify-center">
+                        <button class="bg-gray-900 text-white px-6 py-3 rounded-xl flex items-center hover:bg-gray-800 transition">
+                            <i class="fab fa-apple text-2xl mr-3"></i>
+                            <div class="text-left">
+                                <div class="text-xs uppercase">Download on the</div>
+                                <div class="font-bold leading-none">App Store</div>
+                            </div>
+                        </button>
+                        <button class="bg-gray-900 text-white px-6 py-3 rounded-xl flex items-center hover:bg-gray-800 transition">
+                            <i class="fab fa-google-play text-2xl mr-3"></i>
+                            <div class="text-left">
+                                <div class="text-xs uppercase">Get it on</div>
+                                <div class="font-bold leading-none">Google Play</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+>>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
         </div>
     </div>
 </section>
