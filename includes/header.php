@@ -10,7 +10,8 @@
     <title>AutoTime - Automatic Timetable Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@400;500&display=swap"
         rel="stylesheet">
     <style>
         body {
@@ -65,21 +66,30 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            padding: 12px;
+            padding: 12px 16px;
             background-color: #ffffff;
-            border: 1px solid #dadce0;
-            border-radius: 8px;
-            font-size: 16px;
+            border: 1px solid #747775;
+            border-radius: 100px;
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 14px;
             font-weight: 500;
-            color: #3c4043;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
+            color: #1f1f1f;
+            text-decoration: none;
+            box-shadow: none;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
+            position: relative;
         }
 
         .google-btn:hover {
-            background-color: #f8f9fa;
-            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+            background-color: #f0f4f9;
+            border-color: #1f1f1f;
+            box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+        }
+
+        .google-btn:active {
+            background-color: #dfe1e5;
+            box-shadow: none;
         }
 
         .google-btn img {
@@ -105,9 +115,47 @@
             </div>
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center space-x-8">
-                <a href="index.php" class="font-medium hover:text-purple-600 transition">Home</a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="dashboard.php"
+                    <a href="index.php" class="font-medium hover:text-purple-600 transition">Home</a>
+                <?php endif; ?>
+                <!-- Role Dropdown -->
+                <div class="relative group">
+                    <button class="flex items-center gap-1 font-medium hover:text-purple-600 transition">
+                        Role <i
+                            class="fas fa-chevron-down text-[10px] group-hover:rotate-180 transition-transform duration-300"></i>
+                    </button>
+                    <div
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden transform origin-top scale-95 group-hover:scale-100">
+                        <a href="admin_login.php"
+                            class="block px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600 transition border-b border-gray-50">
+                            <i class="fas fa-user-shield mr-2 opacity-70"></i> Admin
+                        </a>
+                        <a href="faculty_login.php"
+                            class="block px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600 transition border-b border-gray-50">
+                            <i class="fas fa-chalkboard-teacher mr-2 opacity-70"></i> Faculty
+                        </a>
+                        <a href="login.php"
+                            class="block px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600 transition border-b border-gray-50">
+                            <i class="fas fa-user-graduate mr-2 opacity-70"></i> Student
+                        </a>
+                        <a href="others_dashboard.php"
+                            class="block px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600 transition">
+                            <i class="fas fa-users mr-2 opacity-70"></i> Others
+                        </a>
+                    </div>
+                </div>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <?php
+                    $dashboard_url = 'dashboard.php';
+                    if (isset($_SESSION['role'])) {
+                        if ($_SESSION['role'] === 'Admin') {
+                            $dashboard_url = 'admin_dashboard.php';
+                        } elseif ($_SESSION['role'] === 'Faculty') {
+                            $dashboard_url = 'faculty_dashboard.php';
+                        }
+                    }
+                    ?>
+                    <a href="<?php echo $dashboard_url; ?>"
                         class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold shadow-lg">Dashboard</a>
                     <a href="logout.php" class="font-medium hover:text-purple-600 transition">Logout</a>
                 <?php else: ?>
@@ -122,9 +170,44 @@
         </div>
         <!-- Mobile Menu -->
         <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-gray-200 px-6 py-4 space-y-3 shadow-lg">
-            <a href="index.php" class="block w-full text-left py-2 font-medium">Home</a>
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="dashboard.php" class="block w-full text-left py-2 text-purple-600 font-bold">Dashboard</a>
+                <a href="index.php" class="block w-full text-left py-2 font-medium">Home</a>
+            <?php endif; ?>
+            <!-- Mobile Role Accordion -->
+            <div class="border-t border-gray-100 pt-2 pb-1">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 pl-2">Access Portals</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="admin_login.php"
+                        class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                        <i class="fas fa-user-shield text-xs"></i> Admin
+                    </a>
+                    <a href="faculty_login.php"
+                        class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                        <i class="fas fa-chalkboard-teacher text-xs"></i> Faculty
+                    </a>
+                    <a href="login.php"
+                        class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                        <i class="fas fa-user-graduate text-xs"></i> Student
+                    </a>
+                    <a href="others_dashboard.php"
+                        class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                        <i class="fas fa-users text-xs"></i> Others
+                    </a>
+                </div>
+            </div>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <?php
+                $dashboard_url = 'dashboard.php';
+                if (isset($_SESSION['role'])) {
+                    if ($_SESSION['role'] === 'Admin') {
+                        $dashboard_url = 'admin_dashboard.php';
+                    } elseif ($_SESSION['role'] === 'Faculty') {
+                        $dashboard_url = 'faculty_dashboard.php';
+                    }
+                }
+                ?>
+                <a href="<?php echo $dashboard_url; ?>"
+                    class="block w-full text-left py-2 text-purple-600 font-bold">Dashboard</a>
                 <a href="logout.php" class="block w-full text-left py-2 font-medium">Logout</a>
             <?php else: ?>
                 <a href="login.php" class="block w-full text-left py-2 font-medium">Login</a>
