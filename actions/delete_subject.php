@@ -1,27 +1,48 @@
 <?php
-require '../config/db.php';
+ob_start();
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+header('Content-Type: application/json');
+
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
-    header("Location: ../admin_login.php");
-    exit();
-}
+$response = ['success' => false, 'message' => 'An unexpected error occurred.'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'];
+try {
+    require __DIR__ . '/../config/db.php';
+
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SESSION['role'], 'Admin') !== 0) {
+        throw new Exception('Unauthorized access.');
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception('Invalid request method.');
+    }
+
+    $id = $_POST['id'] ?? '';
 
     if (empty($id)) {
-        die("Invalid ID.");
+        throw new Exception('Subject ID is required.');
     }
 
     $stmt = $conn->prepare("DELETE FROM subjects WHERE id = ?");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
-        header("Location: ../admin_dashboard.php?success=subject_deleted");
+        $response['success'] = true;
+        $response['message'] = 'Subject deleted successfully.';
     } else {
-        header("Location: ../admin_dashboard.php?error=subject_delete_failed");
+        throw new Exception("Database error: " . $stmt->error);
     }
     $stmt->close();
+
+} catch (Exception $e) {
+    $response['success'] = false;
+    $response['message'] = $e->getMessage();
 }
+
+ob_end_clean();
+echo json_encode($response);
+exit;
 ?>

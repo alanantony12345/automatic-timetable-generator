@@ -63,14 +63,14 @@ if ($conn) {
             $stats['subjects'] = $res->fetch_row()[0];
 
         // Fetch Subjects (Limited)
-        $sub_query = "SELECT * FROM subjects ORDER BY created_at DESC LIMIT 10";
+        $sub_query = "SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.created_at DESC LIMIT 10";
         if ($res = $conn->query($sub_query)) {
             while ($row = $res->fetch_assoc())
                 $subjects_list[] = $row;
         }
 
         // Fetch All Subjects
-        if ($res = $conn->query("SELECT * FROM subjects ORDER BY name ASC")) {
+        if ($res = $conn->query("SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.name ASC")) {
             while ($row = $res->fetch_assoc())
                 $all_subjects_list[] = $row;
         }
@@ -502,6 +502,7 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Credits</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Batch/Year</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Department</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
@@ -522,9 +523,15 @@ if ($conn) {
                                             <td class="px-6 py-4 text-sm text-slate-500">
                                                 <?php echo htmlspecialchars($sub['batch_year'] ?? 'All'); ?>
                                             </td>
+                                            <td class="px-6 py-4 text-sm font-bold text-slate-700">
+                                                <?php echo htmlspecialchars($sub['department_name'] ?? 'N/A'); ?>
+                                            </td>
                                             <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
                                                         class="fas fa-edit"></i></button>
+                                                <button onclick="deleteSubject(<?php echo $sub['id']; ?>, this)"
+                                                    class="text-slate-400 hover:text-red-500 mx-2"><i
+                                                        class="fas fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -813,6 +820,52 @@ if ($conn) {
 
         <!-- Modals -->
 
+        <!-- Edit Subject Modal -->
+        <div id="edit-subject-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-4xl shadow-2xl">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">Edit Subject</h3>
+                <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();">
+                    <input type="hidden" name="id" id="edit-subject-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
+                            <input type="text" name="name" id="edit-subject-name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
+                            <input type="text" name="code" id="edit-subject-code" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
+                            <input type="number" name="credits" id="edit-subject-credits" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Batch / Year</label>
+                            <select name="batch_year" id="edit-subject-batch" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                <option value="2024-2028">2024-2028</option>
+                                <option value="2023-2027">2023-2027</option>
+                                <option value="2022-2026">2022-2026</option>
+                                <option value="2021-2025">2021-2025</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
+                             <select name="department_id" id="edit-subject-dept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                 <option value="">Select Dept</option>
+                                 <?php foreach ($departments_list as $dept): ?>
+                                     <option value="<?php echo $dept['department_id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
+                                 <?php endforeach; ?>
+                             </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <button type="button" onclick="document.getElementById('edit-subject-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Cancel</button>
+                        <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg">Update Subject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Add Faculty Modal -->
         <div id="faculty-modal"
             class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
@@ -1100,15 +1153,22 @@ if ($conn) {
                         }
 
                         const sub = res.subject;
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                        row.innerHTML = `
+                    
+                    // Get department name from dropdown
+                    const deptSelect = form.querySelector('select[name="department_id"]');
+                    const deptName = deptSelect.options[deptSelect.selectedIndex].text;
+
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                    row.innerHTML = `
                         <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
                         <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
                         <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
                         <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-slate-700">${deptName}</td>
                         <td class="px-6 py-4 text-right">
                             <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
                         </td>
                     `;
                         tbody.insertBefore(row, tbody.firstChild);
@@ -1123,6 +1183,40 @@ if ($conn) {
                 .catch(err => {
                     console.error(err);
                     alert('Error adding subject. Check console for details.');
+                });
+        }
+
+        function deleteSubject(id, btn) {
+            if (!confirm('Are you sure you want to delete this subject?')) return;
+
+            const fd = new FormData();
+            fd.append('id', id);
+
+            fetch('actions/delete_subject.php', {
+                method: 'POST',
+                body: fd
+            })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        // Remove the row
+                        const row = btn.closest('tr');
+                        row.remove();
+                        // If no rows left, maybe show empty message? Optional.
+                        const tbody = document.getElementById('subjects-table-body');
+                        if (tbody.children.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No subjects found.</td></tr>';
+                        }
+                    } else {
+                        alert(res.message);
+                        if (res.message && res.message.includes('Unauthorized')) {
+                            window.location.href = 'admin_login.php';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error deleting subject.');
                 });
         }
 

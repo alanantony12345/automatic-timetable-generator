@@ -52,6 +52,7 @@ try {
         $response['success'] = true;
         $response['message'] = 'Subject added successfully.';
         $response['subject'] = [
+            'id' => $conn->insert_id,
             'name' => $name,
             'code' => $code,
             'department_id' => $department_id,
