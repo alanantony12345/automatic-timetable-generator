@@ -1,11 +1,21 @@
 <?php
-require 'config/db.php';
-require 'includes/header.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require __DIR__ . '/config/db.php';
 
 $error = '';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: index.php");
+    $dashboard_url = 'dashboard.php';
+    if (isset($_SESSION['role'])) {
+        if (strcasecmp($_SESSION['role'], 'Admin') === 0) {
+            $dashboard_url = 'admin_dashboard.php';
+        } elseif (strcasecmp($_SESSION['role'], 'Faculty') === 0) {
+            $dashboard_url = 'faculty_dashboard.php';
+        }
+    }
+    header("Location: " . $dashboard_url);
     exit();
 }
 
@@ -18,20 +28,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Please fill in all fields.";
     } else {
         // Prepare statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT id, name, password FROM users WHERE email = ?");
+        $stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
 
         if ($stmt->num_rows > 0) {
-            $stmt->bind_result($id, $name, $hashed_password);
+            $stmt->bind_result($id, $name, $hashed_password, $role);
             $stmt->fetch();
 
             if (password_verify($password, $hashed_password)) {
                 // Password correct
                 $_SESSION['user_id'] = $id;
                 $_SESSION['user_name'] = $name;
-                echo "<script>alert('Login Successful! Redirecting to Landing Page...'); window.location.href='index.php';</script>";
+                $_SESSION['role'] = $role;
+
+                $redirect_url = 'dashboard.php';
+                if (strcasecmp($role, 'Admin') === 0)
+                    $redirect_url = 'admin_dashboard.php';
+                elseif (strcasecmp($role, 'Faculty') === 0)
+                    $redirect_url = 'faculty_dashboard.php';
+
+                echo "<script>alert('Login Successful! Redirecting...'); window.location.href='" . $redirect_url . "';</script>";
                 exit();
             } else {
                 $error = "Invalid password.";
@@ -42,18 +60,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->close();
     }
 }
+
+require 'includes/header.php';
 ?>
 
 <!-- Login Section -->
-<section id="login" class="section pt-24 min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
+<section id="login" class="section pt-24 min-h-screen"
+    style="background: linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%);">
     <div class="max-w-md mx-auto mt-12">
         <div class="card p-10">
-            <h2 class="text-3xl font-bold text-center mb-8 gradient-text">Welcome Back</h2>
+            <h2 class="text-3xl font-bold text-center mb-8 gradient-text">Student Login Portal</h2>
             <p class="text-center text-gray-600 mb-10">Log in to your AutoTime account</p>
 
             <?php if ($error): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-                    <span class="block sm:inline"><?php echo $error; ?></span>
+                    <span class="block sm:inline">
+                        <?php echo $error; ?>
+                    </span>
                 </div>
             <?php endif; ?>
 
@@ -62,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="block text-gray-700 font-medium mb-2" for="login-email">Email Address</label>
                     <input type="email" id="login-email" name="email"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-600 transition"
-                        placeholder="admin@example.com" required>
+                        placeholder="student@example.com" required>
                 </div>
                 <div class="mb-6">
                     <label class="block text-gray-700 font-medium mb-2" for="login-password">Password</label>
@@ -85,11 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
 
             <div class="my-6 text-center text-gray-500">or</div>
-            <button class="google-btn">
+            <a href="google-login.php" class="google-btn">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
                     alt="Google logo">
                 <span>Sign in with Google</span>
-            </button>
+            </a>
 
             <p class="text-center mt-8 text-gray-600">
                 Don't have an account? <a href="register.php"
@@ -98,5 +121,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const emailInput = document.getElementById('login-email');
+        const passwordInput = document.getElementById('login-password');
+
+        function validateField(input, condition, errorMessage) {
+            let errorSpan = input.parentNode.querySelector('.validation-msg');
+            if (!errorSpan) {
+                errorSpan = document.createElement('span');
+                errorSpan.className = 'validation-msg text-xs mt-1 block';
+                input.parentNode.appendChild(errorSpan);
+            }
+
+            if (condition) {
+                input.classList.remove('border-red-500');
+                input.classList.add('border-green-500');
+                errorSpan.textContent = '';
+                return true;
+            } else {
+                input.classList.remove('border-green-500');
+                input.classList.add('border-red-500');
+                errorSpan.textContent = errorMessage;
+                errorSpan.style.color = '#ef4444';
+                return false;
+            }
+        }
+
+        emailInput.addEventListener('input', function () {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            validateField(emailInput, emailRegex.test(emailInput.value), 'Please enter a valid email address.');
+        });
+
+        passwordInput.addEventListener('input', function () {
+            validateField(passwordInput, passwordInput.value.length >= 1, 'Password is required.');
+        });
+    });
+</script>
 
 <?php require 'includes/footer.php'; ?>

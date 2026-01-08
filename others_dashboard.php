@@ -2,19 +2,22 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require __DIR__ . '/config/db.php';
+require __DIR__ . '/includes/config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// Redirect if not a student/other role
-if (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'Admin') === 0) {
+// Redirect if not a Other role
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'Admin') {
     header("Location: admin_dashboard.php");
     exit();
-} elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'Faculty') === 0) {
+} elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'Faculty') {
     header("Location: faculty_dashboard.php");
+    exit();
+} elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'Student') {
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -31,7 +34,7 @@ require 'includes/header.php';
     }
 
     .student-body {
-        background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
         min-height: 100vh;
     }
 
@@ -129,11 +132,11 @@ require 'includes/header.php';
             <div class="flex items-center gap-4 mb-10 px-2">
                 <div
                     class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
-                    <i class="fas fa-user-graduate text-xl"></i>
+                    <i class="fas fa-users text-xl"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-gray-800 leading-tight">Student Portal</h4>
-                    <span class="text-xs text-indigo-500 font-bold uppercase tracking-wider">Academics</span>
+                    <h4 class="font-bold text-gray-800 leading-tight">Others Dashboard</h4>
+                    <span class="text-xs text-indigo-500 font-bold uppercase tracking-wider">General</span>
                 </div>
             </div>
 
@@ -175,18 +178,15 @@ require 'includes/header.php';
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
             <div>
                 <h1 class="text-4xl font-black text-gray-900 mb-2">
-                    Welcome back, <span class="gradient-text">
-                        <?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!
-                    </span> 👋
+                    Welcome back, <span
+                        class="gradient-text"><?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!</span> 👋
                 </h1>
                 <p class="text-gray-500 font-medium">Semester 4 • Academic Year 2024-25</p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-3">
                     <i class="far fa-calendar text-indigo-500"></i>
-                    <span class="text-sm font-bold text-gray-700">
-                        <?php echo date('D, M d Y'); ?>
-                    </span>
+                    <span class="text-sm font-bold text-gray-700"><?php echo date('D, M d Y'); ?></span>
                 </div>
                 <button
                     class="w-12 h-12 glass-card rounded-xl flex items-center justify-center text-gray-600 hover:text-indigo-600 transition">
@@ -237,8 +237,8 @@ require 'includes/header.php';
         </div>
 
         <!-- Timetable & Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-8">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div class="xl:col-span-2 space-y-8">
                 <!-- Weekly Timetable -->
                 <div class="glass-card rounded-3xl p-8 overflow-hidden">
                     <div class="flex items-center justify-between mb-8">
@@ -375,37 +375,36 @@ require 'includes/header.php';
 
                 <!-- Learning Progress -->
                 <div
-                    class="glass-card rounded-3xl p-6 bg-gradient-to-br from-indigo-50 to-white text-gray-800 border overflow-hidden relative group">
+                    class="glass-card rounded-3xl p-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-0 overflow-hidden relative group">
                     <div
-                        class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-100 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700">
+                        class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700">
                     </div>
-                    <h4 class="text-indigo-500 text-sm font-bold uppercase tracking-widest mb-4">Course Progress</h4>
-                    <div class="space-y-6 relative z-10">
+                    <h4 class="text-white/80 text-xs font-bold uppercase tracking-widest mb-4">Course Progress</h4>
+                    <div class="space-y-6">
                         <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
+                            <div class="flex justify-between text-xs font-bold mb-2">
                                 <span>Computer Architecture</span>
                                 <span>75%</span>
                             </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 75%"></div>
+                            <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full" style="width: 75%"></div>
                             </div>
                         </div>
                         <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
+                            <div class="flex justify-between text-xs font-bold mb-2">
                                 <span>Database Management</span>
                                 <span>45%</span>
                             </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 45%"></div>
+                            <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full" style="width: 45%"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-8 relative z-10">
-                        <p class="text-[10px] text-gray-400 mb-2 font-bold uppercase">CURRENT GOAL</p>
-                        <h5 class="text-lg font-black tracking-tight mb-4 text-gray-800">Mastering Microservices
-                            Architecture</h5>
+                    <div class="mt-8">
+                        <p class="text-[10px] text-white/60 mb-2">CURRENT GOAL</p>
+                        <h5 class="text-lg font-black tracking-tight mb-4">Mastering Microservices Architecture</h5>
                         <button
-                            class="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 transform hover:-translate-y-1 transition-all">Keep
+                            class="px-6 py-2 bg-white text-indigo-600 rounded-xl text-xs font-black shadow-lg shadow-black/20 transform hover:-translate-y-1 transition-all">Keep
                             Learning</button>
                     </div>
                 </div>
