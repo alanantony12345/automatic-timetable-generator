@@ -17,20 +17,20 @@ try {
     $id = $_POST['id'] ?? null;
 
     if (!$id) {
-        throw new Exception("Room ID is required.");
+        throw new Exception("Section ID is required.");
     }
 
-    $stmt = $conn->prepare("DELETE FROM classrooms WHERE id = ?");
+    $stmt = $conn->prepare("DELETE FROM sections WHERE id = ?");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
         ob_clean();
         echo json_encode([
             'success' => true,
-            'message' => 'Room deleted successfully.'
+            'message' => 'Section deleted successfully.'
         ]);
     } else {
-        throw new Exception("Error deleting room: " . $conn->error);
+        throw new Exception("Error deleting section: " . $conn->error);
     }
     $stmt->close();
 

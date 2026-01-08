@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-<<<<<<< HEAD
     role ENUM('Admin', 'Faculty', 'Student', 'Others') DEFAULT 'Student',
     student_id VARCHAR(50),
     register_number VARCHAR(50),
@@ -16,6 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
     semester INT,
     section VARCHAR(10),
     batch VARCHAR(50),
+    gender VARCHAR(20),
+    mobile VARCHAR(20),
+    dob DATE,
+    admission_type VARCHAR(50),
+    google_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -29,6 +33,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS faculties (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -50,6 +55,8 @@ CREATE TABLE IF NOT EXISTS subjects (
     name VARCHAR(100) NOT NULL,
     code VARCHAR(20) UNIQUE,
     department_id INT,
+    credits INT DEFAULT 3,
+    batch_year VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -95,7 +102,3 @@ CREATE TABLE IF NOT EXISTS timetables (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES departments(id)
 );
-=======
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
->>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6

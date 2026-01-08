@@ -2,7 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/db.php';
+require __DIR__ . '/config/db.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SESSION['role'], 'Faculty') !== 0) {
     header("Location: faculty_login.php");
@@ -141,7 +141,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SE
                     <div class="flex items-center gap-3 pl-2">
                         <div class="text-right hidden sm:block">
                             <p class="text-sm font-bold text-slate-800">
-                                <?php echo htmlspecialchars($_SESSION['user_name']); ?></p>
+                                <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                            </p>
                             <p class="text-[10px] text-emerald-600 font-bold uppercase">Senior Faculty</p>
                         </div>
                         <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['user_name']); ?>&background=10b981&color=fff"
@@ -161,7 +162,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SE
                     class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-emerald-100">
                     <div class="relative z-10">
                         <h3 class="text-3xl font-bold mb-2">Hello, Prof.
-                            <?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!</h3>
+                            <?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!
+                        </h3>
                         <p class="opacity-80 max-w-lg mb-6 text-sm">You have 4 classes today. Your first lecture starts
                             in 2 hours at Hall 305.</p>
                         <button onclick="showSection('timetable')"
@@ -177,7 +179,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SE
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-emerald-50">
                         <div
                             class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-                            <i class="fas fa-clock text-xl"></i></div>
+                            <i class="fas fa-clock text-xl"></i>
+                        </div>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Weekly Load</p>
                         <h4 class="text-3xl font-black text-slate-800 mt-1">18 <span
                                 class="text-sm font-medium text-slate-400">/ 24 hrs</span></h4>
@@ -185,21 +188,24 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SE
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-emerald-50">
                         <div
                             class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
-                            <i class="fas fa-book text-xl"></i></div>
+                            <i class="fas fa-book text-xl"></i>
+                        </div>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Active Subjects</p>
                         <h4 class="text-3xl font-black text-slate-800 mt-1">04</h4>
                     </div>
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-emerald-50">
                         <div
                             class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
-                            <i class="fas fa-layer-group text-xl"></i></div>
+                            <i class="fas fa-layer-group text-xl"></i>
+                        </div>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Sections</p>
                         <h4 class="text-3xl font-black text-slate-800 mt-1">06</h4>
                     </div>
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-emerald-50">
                         <div
                             class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4">
-                            <i class="fas fa-exclamation-circle text-xl"></i></div>
+                            <i class="fas fa-exclamation-circle text-xl"></i>
+                        </div>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Sync Alerts</p>
                         <h4 class="text-3xl font-black text-rose-500 mt-1">00</h4>
                     </div>

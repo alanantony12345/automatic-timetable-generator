@@ -1,27 +1,44 @@
 <?php
-require '../config/db.php';
+header('Content-Type: application/json');
+require __DIR__ . '/../config/db.php';
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
-    header("Location: ../admin_login.php");
-    exit();
-}
+ob_start();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'];
-
-    if (empty($id)) {
-        die("Invalid ID.");
+try {
+    if (!isset($_SESSION['user_id']) || strcasecmp($_SESSION['role'], 'Admin') !== 0) {
+        throw new Exception("Unauthorized access.");
     }
 
-    $stmt = $conn->prepare("DELETE FROM departments WHERE department_id = ?");
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception("Invalid request method.");
+    }
+
+    $id = $_POST['id'] ?? null;
+
+    if (!$id) {
+        throw new Exception("Department ID is required.");
+    }
+
+    $stmt = $conn->prepare("DELETE FROM departments WHERE id = ?");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
-        header("Location: ../admin_dashboard.php?success=dept_deleted");
+        ob_clean();
+        echo json_encode([
+            'success' => true,
+            'message' => 'Department deleted successfully.'
+        ]);
     } else {
-        header("Location: ../admin_dashboard.php?error=dept_delete_failed");
+        throw new Exception("Error deleting department: " . $conn->error);
     }
     $stmt->close();
+
+} catch (Exception $e) {
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
 ?>

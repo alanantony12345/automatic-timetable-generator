@@ -1,5 +1,5 @@
 <?php
-require 'config/db.php';
+require __DIR__ . '/includes/config/db.php';
 
 if ($conn) {
     echo "Connected successfully.<br>";

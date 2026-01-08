@@ -1,76 +1,44 @@
 <?php
+header('Content-Type: application/json');
+require __DIR__ . '/../config/db.php';
 session_start();
-require_once '../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+ob_start();
+
+try {
+    if (!isset($_SESSION['user_id']) || strcasecmp($_SESSION['role'], 'Admin') !== 0) {
+        throw new Exception("Unauthorized access.");
+    }
+
     $action = $_POST['action'] ?? '';
-    $response = ['success' => false, 'message' => ''];
 
     if ($action === 'add_allocation') {
-        // Prepare arrays
         $faculty_ids = $_POST['faculty_id'] ?? [];
         $subject_ids = $_POST['subject_id'] ?? [];
-        $section_ids = $_POST['section_id'] ?? [];
-        $hours_list = $_POST['weekly_hours'] ?? [];
-        $types = $_POST['subject_type'] ?? [];
+        $type = $_POST['subject_type'] ?? 'Theory';
+        $weekly_hours = $_POST['weekly_hours'] ?? 4;
 
-        // Normalize to array if single value
-        if (!is_array($faculty_ids))
-            $faculty_ids = [$faculty_ids];
-        if (!is_array($subject_ids))
-            $subject_ids = [$subject_ids];
+        if (empty($faculty_ids) || empty($subject_ids)) {
+            throw new Exception("Please select at least one faculty and one subject.");
+        }
 
-        // hours/type might come as array (legacy) or string (new). Handle both.
-        $hrs = is_array($hours_list) ? ($hours_list[0] ?? 4) : ($hours_list ?: 4);
-        $type = is_array($types) ? ($types[0] ?? 'Theory') : ($types ?: 'Theory');
-
-        $success_count = 0;
-        $error_count = 0;
-
-        $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_id, section_id, weekly_hours, subject_type) VALUES (?, ?, ?, ?, ?)");
-
-        // Cartesian Product Loop: M Faculties x N Subjects
-        foreach ($faculty_ids as $f_id) {
-            foreach ($subject_ids as $s_id) {
-                if (empty($f_id) || empty($s_id))
-                    continue;
-                $sec_id = null; // Default null for bulk allocation
-
-                // Check if exists
-                $check_sql = "SELECT id FROM faculty_subjects WHERE faculty_id = $f_id AND subject_id = $s_id AND section_id IS NULL";
-                $check = $conn->query($check_sql);
-
-                if ($check && $check->num_rows > 0) {
-                    $error_count++;
-                } else {
-                    $stmt->bind_param("iiids", $f_id, $s_id, $sec_id, $hrs, $type);
-                    if ($stmt->execute()) {
-                        $success_count++;
-                    } else {
-                        $error_count++;
-                    }
-                }
+        foreach ($faculty_ids as $fid) {
+            foreach ($subject_ids as $sid) {
+                $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_id, type, weekly_hours) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE type=?, weekly_hours=?");
+                $stmt->bind_param("iisiis", $fid, $sid, $type, $weekly_hours, $type, $weekly_hours);
+                $stmt->execute();
+                $stmt->close();
             }
         }
 
-        if ($success_count > 0) {
-            $response['success'] = true;
-            $response['message'] = "$success_count allocations added successfully." . ($error_count > 0 ? " ($error_count skipped as duplicates)" : "");
-        } else {
-            $response['message'] = "No allocations added. " . ($error_count > 0 ? "All combinations already exist." : "Please select at least one faculty and one subject.");
-        }
-    } elseif ($action === 'remove_allocation') {
-        $faculty_id = $_POST['faculty_id'];
-        $subject_id = $_POST['subject_id'];
-
-        // If we want to be specific about section, we should pass it. For now, deleting general mapping
-        $conn->query("DELETE FROM faculty_subjects WHERE faculty_id = $faculty_id AND subject_id = $subject_id");
-        $response['success'] = true;
-        $response['message'] = 'Allocation removed.';
+        ob_clean();
+        echo json_encode(['success' => true, 'message' => 'Allocations saved successfully.']);
+    } else {
+        throw new Exception("Invalid action.");
     }
 
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
+} catch (Exception $e) {
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

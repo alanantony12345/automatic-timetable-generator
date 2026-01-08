@@ -63,14 +63,14 @@ if ($conn) {
             $stats['subjects'] = $res->fetch_row()[0];
 
         // Fetch Subjects (Limited)
-        $sub_query = "SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.created_at DESC LIMIT 10";
+        $sub_query = "SELECT * FROM subjects ORDER BY created_at DESC LIMIT 10";
         if ($res = $conn->query($sub_query)) {
             while ($row = $res->fetch_assoc())
                 $subjects_list[] = $row;
         }
 
         // Fetch All Subjects
-        if ($res = $conn->query("SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.name ASC")) {
+        if ($res = $conn->query("SELECT * FROM subjects ORDER BY name ASC")) {
             while ($row = $res->fetch_assoc())
                 $all_subjects_list[] = $row;
         }
@@ -113,7 +113,7 @@ if ($conn) {
     // Sections
     $res = $conn->query("SHOW TABLES LIKE 'sections'");
     if ($res && $res->num_rows > 0) {
-        $sec_query = "SELECT * FROM sections LIMIT 10";
+        $sec_query = "SELECT s.*, d.name as dept_name FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY s.id DESC LIMIT 10";
         if ($res = $conn->query($sec_query)) {
             while ($row = $res->fetch_assoc())
                 $sections_list[] = $row;
@@ -133,11 +133,16 @@ if ($conn) {
 
     // Academic Settings
     $academic_settings = [];
+    $last_settings_update = null;
     $res = $conn->query("SHOW TABLES LIKE 'academic_settings'");
     if ($res && $res->num_rows > 0) {
-        if ($res = $conn->query("SELECT * FROM academic_settings")) {
-            while ($row = $res->fetch_assoc())
+        if ($res = $conn->query("SELECT *, updated_at FROM academic_settings")) {
+            while ($row = $res->fetch_assoc()) {
                 $academic_settings[$row['key_name']] = $row['value'];
+                if (!$last_settings_update || $row['updated_at'] > $last_settings_update) {
+                    $last_settings_update = $row['updated_at'];
+                }
+            }
         }
     }
 
@@ -206,10 +211,82 @@ if ($conn) {
         input:checked~.toggle-bg {
             background-color: #4f46e5;
         }
+
+        /* Professional Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .animate-fade-out {
+            animation: fadeOut 0.4s ease-in forwards;
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #4f46e5;
+            display: flex;
+            items-center: center;
+            gap: 0.75rem;
+            min-width: 300px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            border-left-color: #10b981;
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+
+        .toast.info {
+            border-left-color: #3b82f6;
+        }
     </style>
 </head>
 
 <body class="overflow-hidden">
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
     <!-- Sidebar -->
     <aside id="sidebar"
         class="fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 z-50 transition-transform duration-300">
@@ -249,6 +326,11 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
+                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
+                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                    <i class="fas fa-building"></i> Departments
+                </a>
+
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
                     class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
@@ -280,9 +362,9 @@ if ($conn) {
                         <i class="fas fa-chevron-down text-[10px] transition-transform group-hover:rotate-180"></i>
                     </button>
                     <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
-                        <a href="#"
+                        <a href="javascript:void(0)" onclick="showSection('view-dept-wise')"
                             class="block py-1.5 text-sm text-slate-500 hover:text-indigo-600 transition">Department-wise</a>
-                        <a href="#"
+                        <a href="javascript:void(0)" onclick="showSection('view-fac-wise')"
                             class="block py-1.5 text-sm text-slate-500 hover:text-indigo-600 transition">Faculty-wise</a>
                     </div>
                 </div>
@@ -299,9 +381,11 @@ if ($conn) {
                         <i class="fas fa-chevron-down text-[10px] transition-transform group-hover:rotate-180"></i>
                     </button>
                     <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
-                        <a href="#" class="block py-1.5 text-sm text-slate-500 hover:text-red-500 transition"><i
+                        <a href="actions/export_timetable.php?format=pdf"
+                            class="block py-1.5 text-sm text-slate-500 hover:text-red-500 transition"><i
                                 class="far fa-file-pdf mr-2"></i>PDF Format</a>
-                        <a href="#" class="block py-1.5 text-sm text-slate-500 hover:text-green-600 transition"><i
+                        <a href="actions/export_timetable.php?format=excel"
+                            class="block py-1.5 text-sm text-slate-500 hover:text-green-600 transition"><i
                                 class="far fa-file-excel mr-2"></i>Excel Format</a>
                     </div>
                 </div>
@@ -437,36 +521,37 @@ if ($conn) {
                             <h3 class="text-2xl font-bold text-slate-800">Course / Program Management</h3>
                             <p class="text-sm text-slate-500">Manage subjects, codes, credits, and batches.</p>
                         </div>
-                        <button
-                            class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-indigo-700 transition"><i
-                                class="fas fa-plus mr-2 text-xs"></i> Add Subject</button>
+                        <button onclick="toggleAddSubjectForm()"
+                            class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                            <i class="fas fa-plus mr-2 text-xs"></i> Add Subject
+                        </button>
                     </div>
 
-                    <form id="add-subject-form" onsubmit="event.preventDefault(); addSubject();">
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8 items-end">
-                            <div>
+                    <form id="add-subject-form" class="hidden" onsubmit="event.preventDefault(); addSubject();">
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8 items-end bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200">
+                            <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject
                                     Name</label>
-                                <input type="text" name="name" required
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                <input type="text" name="name" required placeholder="e.g. Data Structures"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject
                                     Code</label>
-                                <input type="text" name="code" required
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                <input type="text" name="code" required placeholder="CS101"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
-                                <input type="number" name="credits" required
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm"
-                                    placeholder="e.g. 4">
+                                <input type="number" name="credits" required value="3" min="1" max="10"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Batch /
                                     Year</label>
                                 <select name="batch_year"
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                                     <option value="2024-2028">2024-2028</option>
                                     <option value="2023-2027">2023-2027</option>
                                     <option value="2022-2026">2022-2026</option>
@@ -476,19 +561,23 @@ if ($conn) {
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
                                 <select name="department_id" required
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                                     <option value="">Select Dept</option>
-                                    <?php foreach ($departments_list as $dept): ?>
-                                        <option value="<?php echo $dept['department_id']; ?>">
-                                            <?php echo htmlspecialchars($dept['department_name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if (empty($departments_list)): ?>
+                                        <option value="" disabled>No departments found</option>
+                                    <?php else: ?>
+                                        <?php foreach ($departments_list as $dept): ?>
+                                            <option value="<?php echo $dept['id']; ?>">
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                             </div>
-                            <div>
+                            <div class="md:col-span-6 flex justify-end">
                                 <button type="submit"
-                                    class="w-full px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-indigo-700 transition">
-                                    Add Subject
+                                    class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                                    <i class="fas fa-plus mr-2"></i> Add Subject
                                 </button>
                             </div>
                         </div>
@@ -502,7 +591,6 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Credits</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Batch/Year</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Department</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
@@ -522,9 +610,6 @@ if ($conn) {
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500">
                                                 <?php echo htmlspecialchars($sub['batch_year'] ?? 'All'); ?>
-                                            </td>
-                                            <td class="px-6 py-4 text-sm font-bold text-slate-700">
-                                                <?php echo htmlspecialchars($sub['department_name'] ?? 'N/A'); ?>
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
@@ -565,22 +650,23 @@ if ($conn) {
                             <thead class="bg-slate-50 border-b border-slate-100">
                                 <tr>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Department</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Year</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Year/Sem</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Section</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Strength</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-50">
+                            <tbody id="sections-table-body" class="divide-y divide-slate-50">
                                 <?php if (!empty($sections_list)): ?>
                                     <?php foreach ($sections_list as $sec): ?>
                                         <tr class="hover:bg-slate-50 transition">
                                             <td class="px-6 py-4 text-sm font-bold text-slate-700">
-                                                <?php echo htmlspecialchars($sec['department_id']); ?>
+                                                <?php echo htmlspecialchars($sec['dept_name'] ?? $sec['department_id']); ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-600">
-                                                <?php echo htmlspecialchars($sec['year']); ?>
+                                                Yr <?php echo htmlspecialchars($sec['year']); ?>, Sem
+                                                <?php echo htmlspecialchars($sec['semester']); ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm font-bold text-indigo-600">
                                                 <?php echo htmlspecialchars($sec['section_name']); ?>
@@ -591,6 +677,9 @@ if ($conn) {
                                             <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
                                                         class="fas fa-edit"></i></button>
+                                                <button onclick="deleteSection(<?php echo $sec['id']; ?>, this)"
+                                                    class="text-slate-400 hover:text-red-500 mx-2"><i
+                                                        class="fas fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -626,11 +715,11 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Faculty Profile
                                     </th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Max Hrs/Week</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Constraint Action
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-50">
+                            <tbody id="faculty-table-body" class="divide-y divide-slate-50">
                                 <?php if (!empty($faculties_list)): ?>
                                     <?php foreach ($faculties_list as $fac): ?>
                                         <tr class="hover:bg-slate-50 transition">
@@ -653,10 +742,12 @@ if ($conn) {
                                             <td class="px-6 py-4 text-sm font-bold text-slate-700">
                                                 <?php echo htmlspecialchars($fac['max_hours_week'] ?? 20); ?>
                                             </td>
-                                            <td class="px-6 py-4">
+                                            <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"
-                                                    title="Manage Constraints"><i class="fas fa-sliders-h"></i> Manage
-                                                    Constraints</button>
+                                                    title="Manage Constraints"><i class="fas fa-sliders-h"></i></button>
+                                                <button onclick="deleteFaculty(<?php echo $fac['id']; ?>, this)"
+                                                    class="text-slate-400 hover:text-red-500 mx-2" title="Delete Faculty"><i
+                                                        class="fas fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -685,10 +776,13 @@ if ($conn) {
                             Room</button>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div id="rooms-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <?php if (!empty($rooms_list)): ?>
                             <?php foreach ($rooms_list as $room): ?>
                                 <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group overflow-hidden">
+                                    <button onclick="deleteRoom(<?php echo $room['id']; ?>, this)"
+                                        class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"><i
+                                            class="fas fa-trash text-xs"></i></button>
                                     <div class="flex justify-between items-start mb-6">
                                         <div
                                             class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
@@ -720,6 +814,58 @@ if ($conn) {
                         <?php else: ?>
                             <p class="text-slate-400 text-sm">No rooms found.</p>
                         <?php endif; ?>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DEPARTMENT MANAGEMENT SECTION -->
+            <section id="dept-manage-section" class="hidden space-y-8">
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800">Department Management</h3>
+                            <p class="text-sm text-slate-500">Add or remove academic departments.</p>
+                        </div>
+                        <button onclick="document.getElementById('dept-modal').classList.remove('hidden')"
+                            class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg">New
+                            Department</button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Dept Name</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Code</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="dept-table-body" class="divide-y divide-slate-50">
+                                <?php if (!empty($departments_list)): ?>
+                                    <?php foreach ($departments_list as $dept): ?>
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="px-6 py-4 font-bold text-slate-800">
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-slate-500">
+                                                <?php echo htmlspecialchars($dept['code'] ?? '-'); ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button onclick="deleteDept(<?php echo $dept['id']; ?>, this)"
+                                                    class="text-slate-400 hover:text-red-500"><i
+                                                        class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No departments
+                                            found.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -820,58 +966,15 @@ if ($conn) {
 
         <!-- Modals -->
 
-        <!-- Edit Subject Modal -->
-        <div id="edit-subject-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white p-8 rounded-3xl w-full max-w-4xl shadow-2xl">
-                <h3 class="text-xl font-bold text-slate-800 mb-6">Edit Subject</h3>
-                <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();">
-                    <input type="hidden" name="id" id="edit-subject-id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
-                            <input type="text" name="name" id="edit-subject-name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
-                            <input type="text" name="code" id="edit-subject-code" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
-                            <input type="number" name="credits" id="edit-subject-credits" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Batch / Year</label>
-                            <select name="batch_year" id="edit-subject-batch" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                                <option value="2024-2028">2024-2028</option>
-                                <option value="2023-2027">2023-2027</option>
-                                <option value="2022-2026">2022-2026</option>
-                                <option value="2021-2025">2021-2025</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-                             <select name="department_id" id="edit-subject-dept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                                 <option value="">Select Dept</option>
-                                 <?php foreach ($departments_list as $dept): ?>
-                                     <option value="<?php echo $dept['department_id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
-                                 <?php endforeach; ?>
-                             </select>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <button type="button" onclick="document.getElementById('edit-subject-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Cancel</button>
-                        <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg">Update Subject</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Add Faculty Modal -->
         <div id="faculty-modal"
             class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl relative">
+                <button onclick="document.getElementById('faculty-modal').classList.add('hidden')"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
                 <h3 class="text-xl font-bold text-slate-800 mb-6">Add New Faculty</h3>
-                <form action="actions/add_faculty.php" method="POST" class="space-y-4">
+                <form id="add-faculty-form" onsubmit="event.preventDefault(); addFaculty();" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label>
                         <input type="text" name="name" required
@@ -892,8 +995,8 @@ if ($conn) {
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['department_id']; ?>">
-                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                <option value="<?php echo $dept['id']; ?>">
+                                    <?php echo htmlspecialchars($dept['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -917,16 +1020,19 @@ if ($conn) {
         <!-- Add Section Modal -->
         <div id="section-modal"
             class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl relative">
+                <button onclick="document.getElementById('section-modal').classList.add('hidden')"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
                 <h3 class="text-xl font-bold text-slate-800 mb-6">Add Class/Section Mapping</h3>
-                <form action="actions/add_section.php" method="POST" class="space-y-4">
+                <form id="add-section-form" onsubmit="event.preventDefault(); addSection();" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Department</label>
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['department_id']; ?>">
-                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                <option value="<?php echo $dept['id']; ?>">
+                                    <?php echo htmlspecialchars($dept['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -967,9 +1073,12 @@ if ($conn) {
         <!-- Add Room Modal -->
         <div id="room-modal"
             class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xlrelative">
+                <button onclick="document.getElementById('room-modal').classList.add('hidden')"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
                 <h3 class="text-xl font-bold text-slate-800 mb-6">Add New Room</h3>
-                <form action="actions/add_room.php" method="POST" class="space-y-4">
+                <form id="add-room-form" onsubmit="event.preventDefault(); addRoom();" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Room Name/Number</label>
                         <input type="text" name="name" required
@@ -1005,10 +1114,41 @@ if ($conn) {
             </div>
         </div>
 
+        <!-- Add Department Modal -->
+        <div id="dept-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl relative">
+                <button onclick="document.getElementById('dept-modal').classList.add('hidden')"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold text-slate-800 mb-6">New Department</h3>
+                <form id="add-dept-form" onsubmit="event.preventDefault(); addDept();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label>
+                        <input type="text" name="name" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Code</label>
+                        <input type="text" name="code" placeholder="e.g. CS, ME"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                    </div>
+                    <div class="pt-4">
+                        <button type="submit"
+                            class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save
+                            Department</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </main>
 
     <script>
         function showSection(sectionId) {
+            // Update URL hash without jumping if possible
+            window.location.hash = sectionId;
+
             // 1. Hide all sections
             const sections = document.querySelectorAll('section');
             sections.forEach(sec => {
@@ -1033,13 +1173,14 @@ if ($conn) {
                 activeLink.classList.add('active');
             }
 
-            // 5. Update Header Title (Optional)
+            // 5. Update Header Title
             const titles = {
                 'overview': 'Dashboard Overview',
                 'course-manage': 'Course Management',
                 'academic-settings': 'Academic Settings',
                 'faculty-allocation': 'Faculty Allocation',
                 'class-mapping': 'Class & Section Mapping',
+                'dept-manage': 'Department Management',
                 'faculty-manage': 'Faculty Management',
                 'room-manage': 'Room & Resource Management',
                 'generate': 'Generate Timetable',
@@ -1056,12 +1197,43 @@ if ($conn) {
             }
         }
 
+        // Handle path on load and hash change
+        window.addEventListener('hashchange', () => {
+            const h = window.location.hash.replace('#', '');
+            if (h) showSection(h);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const h = window.location.hash.replace('#', '');
+            showSection(h || 'overview');
+        });
+
         // Backend Interactions
-        function saveAcademicSettings() {
+        function saveAcademicSettings(btn) {
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
             const formData = new FormData(document.getElementById('academic-form'));
             fetch('actions/save_academic_settings.php', { method: 'POST', body: formData })
                 .then(r => r.json())
-                .then(d => { alert(d.message); if (d.success) location.reload(); });
+                .then(d => {
+                    if (d.success) {
+                        btn.innerHTML = '<i class="fas fa-check mr-2"></i> Saved!';
+                        btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        alert(d.message);
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('An error occurred while saving.');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                });
         }
 
         function openAllocationModal() {
@@ -1133,94 +1305,424 @@ if ($conn) {
             container.scrollTop = container.scrollHeight;
         }
 
-        function addSubject() {
-            const form = document.getElementById('add-subject-form');
+        function addDept() {
+            const form = document.getElementById('add-dept-form');
+            const btn = form.querySelector('button[type="submit"]');
+            const originalBtn = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
+            const data = new FormData(form);
+            fetch('actions/add_dept.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
+
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        const tbody = document.getElementById('dept-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No departments found')) tbody.innerHTML = '';
+
+                        const d = res.dept;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 font-bold text-slate-800">${d.name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${d.code}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="deleteDept(${d.id}, this)" class="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('dept-modal').classList.add('hidden');
+
+                        // Optionally reload to update dropdowns elsewhere if needed, 
+                        // but for now just update the table.
+                    } else showToast(res.message, 'error');
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
+                    showToast('Error adding department', 'error');
+                });
+        }
+
+        function deleteDept(id, btn) {
+            if (!confirm('Delete this department? This might affect subjects and faculty linked to it.')) return;
+
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+
+            fetch('actions/delete_dept.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('dept-table-body');
+                            if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No departments found.</td></tr>';
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
+                });
+        }
+
+        function addRoom() {
+            const form = document.getElementById('add-room-form');
             const data = new FormData(form);
 
-            fetch('actions/add_subject.php', {
-                method: 'POST',
-                body: data
-            })
-                .then(res => res.json())
+            fetch('actions/add_room.php', { method: 'POST', body: data })
+                .then(r => r.json())
                 .then(res => {
                     if (res.success) {
                         alert(res.message);
+                        const container = document.getElementById('rooms-container');
+                        if (container.querySelector('p')?.innerText.includes('No rooms found')) {
+                            container.innerHTML = '';
+                        }
+                        const room = res.room;
+                        const card = document.createElement('div');
+                        card.className = 'p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group overflow-hidden animate-fade-in';
+                        card.innerHTML = `
+                            <button onclick="deleteRoom(${room.id}, this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"><i class="fas fa-trash text-xs"></i></button>
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                                    <i class="fas fa-laptop-code text-sm"></i>
+                                </div>
+                                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px] font-bold uppercase">${room.type}</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">${room.name}</h4>
+                            <div class="mt-4 flex flex-wrap gap-1">
+                                <span class="px-2 py-0.5 border border-slate-200 rounded text-[8px] text-slate-500">${room.equipment || 'Standard'}</span>
+                            </div>
+                            <div class="mt-4 flex items-end justify-between">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Capacity</p>
+                                    <p class="text-xl font-extrabold text-slate-800">${room.capacity}</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500">
+                                    <span class="text-[10px] font-bold">OK</span>
+                                </div>
+                            </div>
+                        `;
+                        container.insertBefore(card, container.firstChild);
+                        form.reset();
+                        document.getElementById('room-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteRoom(id, btn) {
+            if (!confirm('Are you sure you want to delete this room?')) return;
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_room.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        btn.closest('.group').remove();
+                        const container = document.getElementById('rooms-container');
+                        if (container.children.length === 0) {
+                            container.innerHTML = '<p class="text-slate-400 text-sm">No rooms found.</p>';
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function addSection() {
+            const form = document.getElementById('add-section-form');
+            const data = new FormData(form);
+
+            fetch('actions/add_section.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(res.message);
+                        const tbody = document.getElementById('sections-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No sections found')) {
+                            tbody.innerHTML = '';
+                        }
+                        const sec = res.section;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.department_id}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">Yr ${sec.year}, Sem ${sec.semester}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.section_name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${sec.student_strength}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteSection(${sec.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('section-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteSection(id, btn) {
+            if (!confirm('Are you sure you want to delete this section?')) return;
+            
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_section.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('sections-table-body');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No sections found.</td></tr>';
+                            }
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
+                });
+        }
+
+        function toggleAddSubjectForm() {
+            const form = document.getElementById('add-subject-form');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                form.classList.add('animate-fade-in');
+                form.querySelector('input').focus();
+            } else {
+                form.classList.add('animate-fade-out');
+                setTimeout(() => {
+                    form.classList.add('hidden');
+                    form.classList.remove('animate-fade-out');
+                }, 400);
+            }
+        }
+
+        // Toast System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'info') icon = 'fa-info-circle';
+
+            toast.innerHTML = `
+                <i class="fas ${icon} ${type === 'success' ? 'text-emerald-500' : type === 'error' ? 'text-red-500' : 'text-blue-500'}"></i>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-slate-800">${message}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('animate-fade-out');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        function addSubject() {
+            const form = document.getElementById('add-subject-form');
+            const btn = form.querySelector('button[type="submit"]');
+            const originalBtn = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
+
+            const data = new FormData(form);
+
+            fetch('actions/add_subject.php', { method: 'POST', body: data })
+                .then(res => res.json())
+                .then(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
+
+                    if (res.success) {
+                        showToast(res.message, 'success');
 
                         const tbody = document.getElementById('subjects-table-body');
-                        // Remove "No subjects found" row if present (text content check is safer than cell count sometimes)
                         if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No subjects found')) {
                             tbody.innerHTML = '';
                         }
 
                         const sub = res.subject;
-                    
-                    // Get department name from dropdown
-                    const deptSelect = form.querySelector('select[name="department_id"]');
-                    const deptName = deptSelect.options[deptSelect.selectedIndex].text;
-
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                    row.innerHTML = `
-                        <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
-                        <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
-                        <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
-                        <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
-                        <td class="px-6 py-4 text-sm font-bold text-slate-700">${deptName}</td>
-                        <td class="px-6 py-4 text-right">
-                            <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
                         tbody.insertBefore(row, tbody.firstChild);
                         form.reset();
                     } else {
-                        alert(res.message);
+                        showToast(res.message, 'error');
                         if (res.message && res.message.includes('Unauthorized')) {
                             window.location.href = 'admin_login.php';
                         }
                     }
                 })
                 .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
                     console.error(err);
-                    alert('Error adding subject. Check console for details.');
+                    showToast('Error adding subject. Check console.', 'error');
+                });
+        }
+
+        function addFaculty() {
+            const form = document.getElementById('add-faculty-form');
+            const data = new FormData(form);
+
+            fetch('actions/add_faculty.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(res.message);
+                        const tbody = document.getElementById('faculty-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No faculties found')) {
+                            tbody.innerHTML = '';
+                        }
+                        const fac = res.faculty;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                                        ${fac.name.substring(0, 2)}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">${fac.name}</p>
+                                        <p class="text-[10px] text-slate-400">${fac.email}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${data.get('max_hours_week') || 20}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-2" title="Manage Constraints"><i class="fas fa-sliders-h"></i></button>
+                                <button onclick="deleteFaculty(${fac.id}, this)" class="text-slate-400 hover:text-red-500 mx-2" title="Delete Faculty"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('faculty-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteFaculty(id, btn) {
+            if (!confirm('Are you sure you want to delete this faculty member?')) return;
+            
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_faculty.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('faculty-table-body');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No faculties found.</td></tr>';
+                            }
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
                 });
         }
 
         function deleteSubject(id, btn) {
             if (!confirm('Are you sure you want to delete this subject?')) return;
 
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
             const fd = new FormData();
             fd.append('id', id);
 
-            fetch('actions/delete_subject.php', {
-                method: 'POST',
-                body: fd
-            })
+            fetch('actions/delete_subject.php', { method: 'POST', body: fd })
                 .then(res => res.json())
                 .then(res => {
                     if (res.success) {
-                        // Remove the row
-                        const row = btn.closest('tr');
-                        row.remove();
-                        // If no rows left, maybe show empty message? Optional.
-                        const tbody = document.getElementById('subjects-table-body');
-                        if (tbody.children.length === 0) {
-                            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No subjects found.</td></tr>';
-                        }
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('subjects-table-body');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No subjects found.</td></tr>';
+                            }
+                        }, 400);
                     } else {
-                        alert(res.message);
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
                         if (res.message && res.message.includes('Unauthorized')) {
                             window.location.href = 'admin_login.php';
                         }
                     }
                 })
                 .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
                     console.error(err);
-                    alert('Error deleting subject.');
+                    showToast('Error deleting subject.', 'error');
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', () => { showSection('overview'); });
+
     </script>
 </body>
 

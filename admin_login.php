@@ -2,7 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/db.php';
+require __DIR__ . '/config/db.php';
 
 $error = '';
 
@@ -88,5 +88,42 @@ require 'includes/header.php';
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const emailInput = document.getElementById('admin-email');
+        const passwordInput = document.getElementById('admin-password');
+
+        function validateField(input, condition, errorMessage) {
+            let errorSpan = input.parentNode.querySelector('.validation-msg');
+            if (!errorSpan) {
+                errorSpan = document.createElement('span');
+                errorSpan.className = 'validation-msg text-xs mt-1 block';
+                input.parentNode.appendChild(errorSpan);
+            }
+
+            if (condition) {
+                input.classList.remove('border-red-500');
+                input.classList.add('border-green-500');
+                errorSpan.textContent = '';
+                errorSpan.style.color = '#10b981';
+            } else {
+                input.classList.remove('border-green-500');
+                input.classList.add('border-red-500');
+                errorSpan.textContent = errorMessage;
+                errorSpan.style.color = '#ef4444';
+            }
+        }
+
+        emailInput.addEventListener('input', function () {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            validateField(emailInput, emailRegex.test(emailInput.value), 'Please enter a valid admin email.');
+        });
+
+        passwordInput.addEventListener('input', function () {
+            validateField(passwordInput, passwordInput.value.length >= 1, 'Admin password is required.');
+        });
+    });
+</script>
 
 <?php require 'includes/footer.php'; ?>
