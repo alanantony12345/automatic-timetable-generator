@@ -326,10 +326,26 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
-                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                    <i class="fas fa-building"></i> Departments
-                </a>
+                <div class="relative group">
+                    <button
+                        class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                        <div class="flex items-center gap-3"><i class="fas fa-building"></i> Departments</div>
+                        <i class="fas fa-chevron-right text-[10px] transition-transform group-hover:rotate-90"></i>
+                    </button>
+                    <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
+                        <a href="javascript:void(0)" onclick="showSection('dept-manage')"
+                            class="block py-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">Manage
+                            All</a>
+                        <?php foreach ($departments_list as $dept): ?>
+                            <a href="javascript:void(0)"
+                                onclick="showSection('dept-manage'); /* Future: Filter by this dept */"
+                                class="block py-1.5 text-xs text-slate-500 hover:text-indigo-600 transition truncate"
+                                title="<?php echo htmlspecialchars($dept['name']); ?>">
+                                <?php echo htmlspecialchars($dept['name']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -562,17 +578,25 @@ if ($conn) {
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
                                 <select name="department_id" required
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Dept</option>
+                                    <option value="">-- Select Department --</option>
                                     <?php if (empty($departments_list)): ?>
-                                        <option value="" disabled>No departments found</option>
+                                        <option value="" disabled style="color: red;">⚠ No departments found - Please add
+                                            departments first</option>
                                     <?php else: ?>
                                         <?php foreach ($departments_list as $dept): ?>
                                             <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                                <?php echo htmlspecialchars($dept['name']); ?>        <?php echo !empty($dept['code']) ? ' (' . htmlspecialchars($dept['code']) . ')' : ''; ?>
                                             </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </select>
+                                <?php if (empty($departments_list)): ?>
+                                    <p class="text-xs text-red-500 mt-1">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        No departments available. <a href="#" onclick="showSection('dept-manage')"
+                                            class="text-indigo-600 underline">Add departments first</a>
+                                    </p>
+                                <?php endif; ?>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
                                 <button type="submit"
@@ -1485,7 +1509,7 @@ if ($conn) {
 
         function deleteSection(id, btn) {
             if (!confirm('Are you sure you want to delete this section?')) return;
-            
+
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -1652,7 +1676,7 @@ if ($conn) {
 
         function deleteFaculty(id, btn) {
             if (!confirm('Are you sure you want to delete this faculty member?')) return;
-            
+
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
