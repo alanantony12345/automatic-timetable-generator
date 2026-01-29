@@ -35,16 +35,20 @@ try {
     $credits = trim($_POST['credits'] ?? '3');
     $batch_year = trim($_POST['batch_year'] ?? '');
 
+<<<<<<< HEAD
     // New Inputs
     $academic_year = isset($_POST['academic_year']) ? (int) $_POST['academic_year'] : null;
     $semester = isset($_POST['semester']) ? (int) $_POST['semester'] : null;
     $section_id = !empty($_POST['section_id']) ? (int) $_POST['section_id'] : null;
 
+=======
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
     // Validate
     if (empty($name) || empty($code) || empty($department_id)) {
         throw new Exception('Please fill in Name, Code, and Department.');
     }
 
+<<<<<<< HEAD
     // Validate Mapping Logic
     // If strict compliance: Course must be mapped to valid Dept, Year, Sem, (Section)
     // We check if the section exists if provided
@@ -93,11 +97,19 @@ try {
 
     // DB Insert
     $stmt = $conn->prepare("INSERT INTO subjects (name, code, department_id, credits, batch_year, academic_year, semester, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+=======
+    // DB Insert
+    $stmt = $conn->prepare("INSERT INTO subjects (name, code, department_id, credits, batch_year) VALUES (?, ?, ?, ?, ?)");
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
     if (!$stmt) {
         throw new Exception("Database Prepare Error: " . $conn->error);
     }
 
+<<<<<<< HEAD
     $stmt->bind_param("ssiisiii", $name, $code, $department_id, $credits, $batch_year, $academic_year, $semester, $section_id);
+=======
+    $stmt->bind_param("ssiis", $name, $code, $department_id, $credits, $batch_year);
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 
     if ($stmt->execute()) {
         $response['success'] = true;
@@ -108,10 +120,14 @@ try {
             'code' => $code,
             'department_id' => $department_id,
             'credits' => $credits,
+<<<<<<< HEAD
             'batch_year' => $batch_year,
             'academic_year' => $academic_year,
             'semester' => $semester,
             'section_id' => $section_id
+=======
+            'batch_year' => $batch_year
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
         ];
     } else {
         throw new Exception("Database Execute Error: " . $stmt->error);

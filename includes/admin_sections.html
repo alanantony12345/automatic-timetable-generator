@@ -4,7 +4,11 @@
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h3 class="text-2xl font-bold text-slate-800">Academic Configuration</h3>
+<<<<<<< HEAD
                 <?php if (!empty($last_settings_update)): ?>
+=======
+                <?php if ($last_settings_update): ?>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                 <p class="text-xs text-slate-400 mt-1"><i class="fas fa-history mr-1"></i> Last saved:
                     <?php echo date('M d, Y h:i A', strtotime($last_settings_update)); ?>
                 </p>
@@ -48,12 +52,20 @@
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Working Days</label>
                 <div class="flex flex-wrap gap-4">
                     <?php 
+<<<<<<< HEAD
                         $saved_days_raw = $academic_settings['working_days'] ?? '[]';
                         $saved_days = json_decode($saved_days_raw, true) ?: ['Monday','Tuesday','Wednesday','Thursday','Friday'];
                         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
                         foreach($days as $day): 
                             $checked = in_array($day, $saved_days) ? 'checked' : '';
                         ?>
+=======
+                                $saved_days = json_decode($academic_settings['working_days'] ?? '[]', true) ?: ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+                                $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                                foreach($days as $day): 
+                                    $checked = in_array($day, $saved_days) ? 'checked' : '';
+                                ?>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                     <label
                         class="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 hover:border-indigo-300 transition">
                         <input type="checkbox" name="working_days[]" value="<?php echo $day; ?>" <?php echo $checked; ?>
@@ -69,6 +81,7 @@
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Break Periods (After Period
                     No.)</label>
+<<<<<<< HEAD
                 <div class="flex flex-col gap-2">
                     <?php 
                         $breaks_raw = $academic_settings['break_periods'] ?? '[]';
@@ -78,6 +91,16 @@
                         value="<?php echo is_array($breaks) ? implode(',', $breaks) : ''; ?>"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700">
                     <p class="text-xs text-slate-400">Comma separated numbers (e.g., 2,5 for break after 2nd and
+=======
+                <div class="flex gap-4">
+                    <?php 
+                                $breaks = json_decode($academic_settings['break_periods'] ?? '[]', true);
+                                ?>
+                    <input type="text" name="break_periods[]" placeholder="e.g. 3"
+                        value="<?php echo is_array($breaks) ? implode(',', $breaks) : ''; ?>"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700">
+                    <p class="text-xs text-slate-400 mt-2">Comma separated numbers (e.g., 2,5 for break after 2nd and
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                         5th period)</p>
                 </div>
             </div>
@@ -115,6 +138,7 @@
                     class="fas fa-plus mr-2"></i> Add Allocation</button>
         </div>
 
+<<<<<<< HEAD
         <div id="allocation-modal"
             class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
             <div
@@ -182,23 +206,117 @@
                                     <input type="number" name="weekly_hours[]" value="4"
                                         class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm">
                                 </div>
+=======
+        <!-- Allocation Modal (Hidden by default, simple toggle implementation or separate overlay) -->
+        <div id="allocation-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-lg shadow-2xl animate-fade-in">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">New Allocation</h3>
+                <form id="allocation-form" class="space-y-4">
+                    <input type="hidden" name="action" value="add_allocation">
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Select
+                                    Faculties</label>
+                                <!-- Custom Multi-Select for Faculty -->
+                                <div class="relative group/multi" tabindex="0">
+                                    <div class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center shadow-sm hover:border-indigo-300 transition"
+                                        onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                        <span class="text-slate-600 font-medium">Choose Faculties...</span>
+                                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                                    </div>
+                                    <div
+                                        class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto mt-2 p-2 space-y-1">
+                                        <?php foreach ($all_faculties_list as $f): ?>
+                                        <label
+                                            class="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition">
+                                            <input type="checkbox" name="faculty_id[]" value="<?php echo $f['id']; ?>"
+                                                class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                            <span class="text-sm text-slate-700 font-medium">
+                                                <?php echo htmlspecialchars($f['name']); ?>
+                                            </span>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1.5 ml-1">Select one or more faculties.</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Select
+                                    Subjects</label>
+                                <!-- Custom Multi-Select for Subjects -->
+                                <div class="relative group/multi" tabindex="0">
+                                    <div class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center shadow-sm hover:border-indigo-300 transition"
+                                        onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                        <span class="text-slate-600 font-medium">Choose Subjects...</span>
+                                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                                    </div>
+                                    <div
+                                        class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto mt-2 p-2 space-y-1">
+                                        <?php foreach ($all_subjects_list as $s): ?>
+                                        <label
+                                            class="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition">
+                                            <input type="checkbox" name="subject_id[]" value="<?php echo $s['id']; ?>"
+                                                class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                            <span class="text-sm text-slate-700 font-medium">
+                                                <?php echo htmlspecialchars($s['name']); ?> <span
+                                                    class="text-slate-400 text-xs ml-1">(
+                                                    <?php echo $s['code']; ?>)
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1.5 ml-1">Select one or more subjects.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Type</label>
+                                <select name="subject_type"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option>Theory</option>
+                                    <option>Lab</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Hours/Week</label>
+                                <input type="number" name="weekly_hours" value="4"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                             </div>
                         </div>
                     </div>
 
                     <button type="button" onclick="addAllocationRow()"
+<<<<<<< HEAD
                         class="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition border-dashed">
                         <i class="fas fa-plus mr-2"></i> Add Another Allocation
                     </button>
 
                     <div class="pt-4 flex gap-3">
+=======
+                        class="w-full py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition dashed-border">
+                        <i class="fas fa-plus mr-2"></i> Add Another Allocation
+                    </button>
+
+                    <div class="pt-2 flex gap-3">
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                         <button type="button"
                             onclick="document.getElementById('allocation-modal').classList.add('hidden')"
                             class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
                         <button type="button" onclick="saveAllocation()"
+<<<<<<< HEAD
                             class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100">
                             Save Allocations
                         </button>
+=======
+                            class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save
+                            allocations</button>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                     </div>
                 </form>
             </div>
@@ -216,7 +334,11 @@
             <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative group">
                 <div class="flex justify-between items-start mb-2">
                     <span class="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded uppercase">
+<<<<<<< HEAD
                         <?php echo htmlspecialchars($ann['target_audience'] ?? 'All'); ?>
+=======
+                        <?php echo $ann['target_audience']; ?>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                     </span>
                     <span class="text-xs text-slate-400">
                         <?php echo date('M d, Y', strtotime($ann['created_at'])); ?>
@@ -229,9 +351,14 @@
                     <?php echo nl2br(htmlspecialchars($ann['message'])); ?>
                 </p>
                 <button onclick="deleteAnnouncement(<?php echo $ann['id']; ?>)"
+<<<<<<< HEAD
                     class="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
                     <i class="fas fa-trash"></i>
                 </button>
+=======
+                    class="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i
+                        class="fas fa-trash"></i></button>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             </div>
             <?php endforeach; ?>
             <?php else: ?>
@@ -245,13 +372,21 @@
                     <input type="hidden" name="action" value="create">
                     <div>
                         <label class="text-xs text-indigo-200 uppercase font-bold">Title</label>
+<<<<<<< HEAD
                         <input type="text" name="title" required
+=======
+                        <input type="text" name="title"
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                             class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-sm text-white placeholder-indigo-300 mt-1"
                             placeholder="e.g. Exam Schedule">
                     </div>
                     <div>
                         <label class="text-xs text-indigo-200 uppercase font-bold">Message</label>
+<<<<<<< HEAD
                         <textarea name="message" rows="4" required
+=======
+                        <textarea name="message" rows="4"
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                             class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-sm text-white placeholder-indigo-300 mt-1"></textarea>
                     </div>
                     <div>
@@ -264,7 +399,11 @@
                         </select>
                     </div>
                     <button type="button" onclick="postAnnouncement()"
+<<<<<<< HEAD
                         class="w-full py-3 bg-white text-indigo-900 font-bold rounded-xl mt-2 hover:bg-blue-50 transition">Publish</button>
+=======
+                        class="w-full py-3 bg-white text-indigo-900 font-bold rounded-xl mt-2 hover:bg-indigo-50 transition">Publish</button>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                 </form>
             </div>
         </div>
@@ -285,6 +424,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
+<<<<<<< HEAD
                     <?php if (!empty($faculties_list)): ?>
                     <?php foreach ($faculties_list as $f): ?>
                     <tr class="hover:bg-slate-50 transition">
@@ -298,10 +438,24 @@
                         </td>
                         <td class="px-6 py-4">
                             <span
+=======
+                    <?php foreach ($faculties_list as $fac): ?>
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4">
+                            <p class="font-bold text-slate-800 text-sm">
+                                <?php echo htmlspecialchars($fac['name']); ?>
+                            </p>
+                            <p class="text-xs text-slate-400">
+                                <?php echo htmlspecialchars($fac['email']); ?>
+                            </p>
+                        </td>
+                        <td class="px-6 py-4"><span
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                                 class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold">Active</span>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <button
+<<<<<<< HEAD
                                 onclick="createUserLogin(<?php echo $f['id']; ?>, '<?php echo addslashes($f['name']); ?>', '<?php echo $f['email']; ?>')"
                                 class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition">
                                 Create Login
@@ -314,6 +468,16 @@
                         <td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No users found.</td>
                     </tr>
                     <?php endif; ?>
+=======
+                                onclick="createUserLogin(<?php echo $fac['id']; ?>, '<?php echo $fac['name']; ?>', '<?php echo $fac['email']; ?>')"
+                                class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition">Create
+                                Login</button>
+                            <button class="text-slate-400 hover:text-red-500 ml-2"><i
+                                    class="fas fa-lock-open"></i></button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+>>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                 </tbody>
             </table>
         </div>
