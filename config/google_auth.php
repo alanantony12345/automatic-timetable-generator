@@ -1,10 +1,14 @@
 <?php
-// Google Console Credentials
-define('GOOGLE_CLIENT_ID', '761978681462-kubvjpsp4qg21vpep4gepslrjq3ddjf0.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', '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');
-define('GOOGLE_REDIRECT_URI', 'http://localhost/autotimetable/google-callback.php');
+// Load environment variables
+require_once __DIR__ . '/env_loader.php';
+loadEnv(__DIR__ . '/../.env');
 
-// Google OAuth URL
+// Google Console Credentials - Read from .env file
+define('GOOGLE_CLIENT_ID', env('GOOGLE_CLIENT_ID', ''));
+define('GOOGLE_CLIENT_SECRET', env('GOOGLE_CLIENT_SECRET', ''));
+define('GOOGLE_REDIRECT_URI', env('GOOGLE_REDIRECT_URI', 'http://localhost/autotimetable/google-callback.php'));
+
+// Google OAuth URLs (these are public and don't need to be in .env)
 define('GOOGLE_OAUTH_URL', 'https://accounts.google.com/o/oauth2/v2/auth');
 define('GOOGLE_TOKEN_URL', 'https://oauth2.googleapis.com/token');
 define('GOOGLE_USERINFO_URL', 'https://www.googleapis.com/oauth2/v1/userinfo');

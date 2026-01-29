@@ -31,6 +31,7 @@ $stats = [
 $subjects_list = [];
 $faculties_list = [];
 $sections_list = [];
+$all_sections_list = [];
 $rooms_list = [];
 $logs_list = [];
 
@@ -118,6 +119,13 @@ if ($conn) {
             while ($row = $res->fetch_assoc())
                 $sections_list[] = $row;
         }
+
+        // Use 'department_name' alias for compatibility with view logic
+        $all_sec_query = "SELECT s.*, d.name as department_name FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY s.section_name ASC";
+        if ($res = $conn->query($all_sec_query)) {
+            while ($row = $res->fetch_assoc())
+                $all_sections_list[] = $row;
+        }
     }
 
     // Audit Logs
@@ -167,6 +175,8 @@ if ($conn) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -281,6 +291,14 @@ if ($conn) {
             border-left-color: #3b82f6;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        const ALL_SUBJECTS = <?php echo json_encode($all_subjects_list); ?>;
+        const ALL_FACULTIES = <?php echo json_encode($all_faculties_list); ?>;
+        const ALL_ROOMS = <?php echo json_encode($rooms_list); ?>;
+        const ALL_SECTIONS = <?php echo json_encode($all_sections_list); ?>;
+    </script>
 </head>
 
 <body class="overflow-hidden">
@@ -326,10 +344,26 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
-                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                    <i class="fas fa-building"></i> Departments
-                </a>
+                <div class="relative group">
+                    <button id="link-dept-manage" onclick="showSection('dept-manage')"
+                        class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                        <div class="flex items-center gap-3"><i class="fas fa-building"></i> Departments</div>
+                        <i class="fas fa-chevron-right text-[10px] transition-transform group-hover:rotate-90"></i>
+                    </button>
+                    <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
+                        <a href="javascript:void(0)" onclick="showSection('dept-manage')"
+                            class="block py-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">Manage
+                            All</a>
+                        <?php foreach ($departments_list as $dept): ?>
+                            <a href="javascript:void(0)"
+                                onclick="showSection('dept-manage'); /* Future: Filter by this dept */"
+                                class="block py-1.5 text-xs text-slate-500 hover:text-indigo-600 transition truncate"
+                                title="<?php echo htmlspecialchars($dept['name']); ?>">
+                                <?php echo htmlspecialchars($dept['name']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -446,6 +480,29 @@ if ($conn) {
 
             <!-- 1. DASHBOARD OVERVIEW -->
             <section id="overview-section" class="space-y-8">
+                <!-- Status Widget -->
+                <div
+                    class="bg-indigo-900 rounded-3xl p-8 text-white flex items-center justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1/3 bg-white/5 skew-x-12 transform translate-x-10">
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold mb-2">Timetable Status</h3>
+                        <p class="text-indigo-200 text-sm" id="status-desc">Current active timetable generation status.
+                        </p>
+                    </div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="text-right mr-4">
+                            <p class="text-xs font-bold text-indigo-300 uppercase">Last Updated</p>
+                            <p class="font-bold" id="status-last-updated">-</p>
+                        </div>
+                        <div
+                            class="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/10 flex flex-col items-center">
+                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Status</span>
+                            <span class="text-lg font-black" id="status-badge">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-slate-100">
                         <div
@@ -560,18 +617,46 @@ if ($conn) {
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-                                <select name="department_id" required
+                                <select name="department_id" id="subject_dept_id" required
+                                    onchange="filterSubjectSections()"
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Dept</option>
-                                    <?php if (empty($departments_list)): ?>
-                                        <option value="" disabled>No departments found</option>
-                                    <?php else: ?>
-                                        <?php foreach ($departments_list as $dept): ?>
-                                            <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <option value="">-- Select Department --</option>
+                                    <?php foreach ($departments_list as $dept): ?>
+                                        <option value="<?php echo $dept['id']; ?>">
+                                            <?php echo htmlspecialchars($dept['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <!-- New Fields -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Academic
+                                    Year</label>
+                                <select name="academic_year" id="subject_year" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Semester</label>
+                                <select name="semester" id="subject_semester" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Sem</option>
+                                    <?php for ($i = 1; $i <= 8; $i++)
+                                        echo "<option value='$i'>Sem $i</option>"; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section
+                                    (Optional)</label>
+                                <select name="section_id" id="subject_section_id"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">-- All Sections --</option>
+                                    <!-- Populated by JS -->
                                 </select>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
@@ -590,7 +675,7 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Code</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Credits</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Batch/Year</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Details</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
@@ -609,7 +694,18 @@ if ($conn) {
                                                 <?php echo htmlspecialchars($sub['credits'] ?? 'N/A'); ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500">
-                                                <?php echo htmlspecialchars($sub['batch_year'] ?? 'All'); ?>
+                                                <?php
+                                                $details = [];
+                                                if (!empty($sub['batch_year']))
+                                                    $details[] = $sub['batch_year'];
+                                                if (!empty($sub['academic_year']))
+                                                    $details[] = "Yr " . $sub['academic_year'];
+                                                if (!empty($sub['semester']))
+                                                    $details[] = "Sem " . $sub['semester'];
+                                                if (!empty($sub['section_id']))
+                                                    $details[] = "Sec ID:" . $sub['section_id']; // Could map to name if joined
+                                                echo implode(' • ', $details);
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
@@ -927,21 +1023,294 @@ if ($conn) {
 
             <section id="generate-section"
                 class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
+                <div class="bg-white p-12 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-2xl w-full">
+                    <div
+                        class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-600 text-4xl mx-auto shadow-sm">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800 mb-2">Timetable Generator</h3>
+                    <p class="text-slate-500 font-medium text-sm mb-10 max-w-md mx-auto">
+                        Ready to generate the timetable. The system will use current faculty allocations, room
+                        capacities, and subject constraints.
+                    </p>
+
+                    <div class="flex flex-col gap-4 max-w-xs mx-auto">
+                        <button onclick="startGeneration()" id="btn-generate"
+                            class="w-full px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                            <i class="fas fa-play"></i> Start Generation
+                        </button>
+
+                        <div id="generation-results" class="hidden space-y-3 animate-fade-in">
+                            <div
+                                class="p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-100">
+                                <i class="fas fa-check-circle mr-2"></i> Generation Successful!
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="publishTimetable()" id="btn-publish"
+                                    class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-100">
+                                    Publish
+                                </button>
+                                <button onclick="showSection('overview')"
+                                    class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">
+                                    Later
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="console-output"
+                        class="hidden mt-8 text-left bg-slate-900 rounded-xl p-4 font-mono text-xs text-slate-300 h-32 overflow-y-auto">
+                        <div
+                            class="flex items-center gap-2 mb-2 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+                            <i class="fas fa-terminal"></i> System Log
+                        </div>
+                        <div id="console-lines" class="space-y-1"></div>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <form action="actions/generate_timetable.php" method="POST">
-                    <button type="submit"
-                        class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                        Generation</button>
-                </form>
             </section>
 
             <!-- OPERATIONS Placeholder -->
+            <!-- View Timetable Department Wise -->
+            <section id="view-dept-wise-section" class="hidden space-y-8">
+                <!-- Wrapper -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800">View Timetable</h3>
+                            <p class="text-slate-400 text-sm">Select constraints to view the generated schedule.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="downloadTimetablePDF()"
+                                class="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition shadow-sm border border-red-100">
+                                <i class="fas fa-file-pdf mr-2"></i> Export PDF
+                            </button>
+                            <select id="view-version-id"
+                                class="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Select Version...</option>
+                                <!-- Populated by JS -->
+                            </select>
+                            <button onclick="loadViewVersions()"
+                                class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition"><i
+                                    class="fas fa-sync"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
+                            <select id="view-dept-id"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
+                                <option value="">Select Dept</option>
+                                <?php foreach ($departments_list as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>">
+                                        <?php echo htmlspecialchars($dept['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section</label>
+                            <select id="view-section-id"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
+                                <option value="">Select Section</option>
+                                <option value="">Select Department First</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="loadTimetableGrid()"
+                                class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                                <i class="fas fa-search mr-2"></i> Load Timetable
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grid Container -->
+                    <div id="view-grid-container" class="overflow-x-auto rounded-xl border border-slate-200 hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold w-32 bg-slate-50 sticky left-0 z-10">Day / Period
+                                    </th>
+                                    <th class="px-6 py-4 text-center">1<br><span
+                                            class="text-[10px] opacity-70">9:30-10:20</span></th>
+                                    <th class="px-6 py-4 text-center">2<br><span
+                                            class="text-[10px] opacity-70">10:20-11:10</span></th>
+                                    <th class="px-6 py-4 text-center">3<br><span
+                                            class="text-[10px] opacity-70">11:10-12:00</span></th>
+                                    <th class="px-6 py-4 text-center">4<br><span
+                                            class="text-[10px] opacity-70">12:00-12:50</span></th>
+                                    <th class="px-6 py-4 text-center bg-slate-100/50">LUNCH</th>
+                                    <th class="px-6 py-4 text-center">5<br><span
+                                            class="text-[10px] opacity-70">01:30-02:20</span></th>
+                                    <th class="px-6 py-4 text-center">6<br><span
+                                            class="text-[10px] opacity-70">02:20-03:10</span></th>
+                                    <th class="px-6 py-4 text-center">7<br><span
+                                            class="text-[10px] opacity-70">03:10-04:00</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="view-grid-body" class="divide-y divide-slate-100">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="view-empty-state" class="py-20 text-center">
+                        <div
+                            class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
+                            <i class="fas fa-table"></i>
+                        </div>
+                        <p class="text-slate-400 font-medium">Select constraints and load to view schedule.</p>
+                    </div>
+
+                    <!-- Allocations Summary -->
+                    <div id="view-allocations-wrapper"
+                        class="hidden mt-8 border-t border-slate-100 pt-8 animate-fade-in">
+                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-list-ul text-indigo-500"></i> Course Allocations
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="view-allocations-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN PROFILE SECTION -->
+            <section id="profile-section" class="hidden space-y-8 animate-fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Profile Card -->
+                    <div
+                        class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col items-center text-center relative overflow-hidden group">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition duration-500">
+                        </div>
+                        <div
+                            class="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-indigo-500 to-purple-500 mb-6 relative z-10 shadow-lg shadow-indigo-200">
+                            <div class="w-full h-full bg-white rounded-full p-1">
+                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['user_name']); ?>&background=random&size=128"
+                                    class="w-full h-full rounded-full object-cover">
+                            </div>
+                            <button
+                                class="absolute bottom-0 right-0 bg-white text-indigo-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md border border-indigo-100 hover:bg-indigo-50 transition">
+                                <i class="fas fa-camera text-xs"></i>
+                            </button>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800 relative z-10 mb-1">
+                            <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                        </h3>
+                        <span
+                            class="px-4 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-6 relative z-10">Administrator</span>
+
+                        <div class="w-full grid grid-cols-2 gap-4 relative z-10">
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">Role Type</p>
+                                <p class="font-bold text-slate-700">Super Admin</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">Member Since</p>
+                                <p class="font-bold text-slate-700">2024</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Forms -->
+                    <div class="md:col-span-2 space-y-8">
+                        <!-- Personal Details -->
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-lg text-slate-800">Personal Details</h4>
+                                    <p class="text-xs text-slate-400">Update your public profile information.</p>
+                                </div>
+                            </div>
+
+                            <form id="profile-form" onsubmit="event.preventDefault(); updateProfile(this);">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Full
+                                            Name</label>
+                                        <input type="text" name="name"
+                                            value="<?php echo htmlspecialchars($_SESSION['user_name']); ?>"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Email
+                                            Address</label>
+                                        <input type="email" name="email"
+                                            value="<?php echo htmlspecialchars($_SESSION['user_email'] ?? 'admin@college.edu'); ?>"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                        class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 transform active:scale-95">
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Security -->
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-lg text-slate-800">Security & Password</h4>
+                                    <p class="text-xs text-slate-400">Manage your account security.</p>
+                                </div>
+                            </div>
+
+                            <form id="password-form" onsubmit="event.preventDefault(); changePassword(this);">
+                                <div class="space-y-4 mb-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Current
+                                            Password</label>
+                                        <div class="relative">
+                                            <input type="password" name="current_password"
+                                                placeholder="Enter current password"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                            <i class="fas fa-lock absolute right-4 top-3.5 text-slate-300"></i>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">New
+                                                Password</label>
+                                            <input type="password" name="new_password" placeholder="Min 8 chars"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Confirm
+                                                Password</label>
+                                            <input type="password" name="confirm_password"
+                                                placeholder="Repeat new password"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                        class="px-8 py-3 bg-white border-2 border-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-50 hover:text-orange-600 hover:border-orange-100 transition transform active:scale-95">
+                                        Update Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <?php
             $sections_path = __DIR__ . '/includes/admin_sections.html';
             if (file_exists($sections_path)) {
@@ -949,19 +1318,7 @@ if ($conn) {
             }
             ?>
 
-            <section id="generate-section"
-                class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <button
-                    class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                    Generation</button>
-            </section>
+
         </div>
 
         <!-- Modals -->
@@ -1139,6 +1496,40 @@ if ($conn) {
                             Department</button>
                     </div>
                 </form>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Entry Modal -->
+        <div id="edit-entry-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[70] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl relative">
+                <button onclick="document.getElementById('edit-entry-modal').classList.add('hidden')"
+                    class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i
+                        class="fas fa-times"></i></button>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Edit Timetable Slot</h3>
+                <form id="edit-entry-form" onsubmit="event.preventDefault(); saveEditEntry();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Subject</label>
+                        <select name="subject_id" name="edit_subject_id"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Faculty</label>
+                        <select name="faculty_id" name="edit_faculty_id"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Room</label>
+                        <select name="room_id" name="edit_room_id"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm"></select>
+                    </div>
+                    <div class="pt-2">
+                        <button type="submit" id="btn-save-edit"
+                            class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save
+                            Changes</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -1149,12 +1540,16 @@ if ($conn) {
             // Update URL hash without jumping if possible
             window.location.hash = sectionId;
 
+            // Alias regenerate to generate
+            if (sectionId === 'regenerate') sectionId = 'generate';
+
             // 1. Hide all sections
             const sections = document.querySelectorAll('section');
             sections.forEach(sec => {
                 if (sec.id && sec.id.endsWith('-section')) {
                     sec.classList.add('hidden');
                 }
+                // Custom check if manual sections array was used previously, but querySelectorAll is safer
             });
 
             // 2. Remove active class from all links
@@ -1189,7 +1584,11 @@ if ($conn) {
                 'regenerate': 'Regenerate Timetable',
                 'profile': 'Admin Profile',
                 'password': 'Change Password',
-                'user-manage': 'User Management'
+                'user-manage': 'User Management',
+                'password': 'Change Password',
+                'user-manage': 'User Management',
+                'view-dept-wise': 'View Timetable (Department)',
+                'reports': 'Reports & Analytics'
             };
             const titleEl = document.getElementById('section-title');
             if (titleEl) {
@@ -1485,7 +1884,7 @@ if ($conn) {
 
         function deleteSection(id, btn) {
             if (!confirm('Are you sure you want to delete this section?')) return;
-            
+
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -1529,7 +1928,306 @@ if ($conn) {
             }
         }
 
-        // Toast System
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkGenerationStatus();
+            loadViewVersions(); // Load versions for viewer
+            // Poll status every 30 seconds
+            setInterval(checkGenerationStatus, 30000);
+        });
+
+        // Generation Logic
+        let currentDraftId = null;
+
+        function log(msg) {
+            const out = document.getElementById('console-output');
+            const lines = document.getElementById('console-lines');
+            out.classList.remove('hidden');
+            const p = document.createElement('p');
+            p.innerHTML = `<span class="text-indigo-400">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            lines.appendChild(p);
+            out.scrollTop = out.scrollHeight;
+        }
+
+        function checkGenerationStatus() {
+            fetch('actions/get_generation_status.php')
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        const statusBadge = document.getElementById('status-badge');
+                        const statusDesc = document.getElementById('status-desc');
+                        const lastUpd = document.getElementById('status-last-updated');
+
+                        // Status Widget Update
+                        if (d.active) {
+                            statusBadge.innerText = 'Active';
+                            statusDesc.innerText = 'System is running on Version: ' + d.active.version_name;
+                            lastUpd.innerText = new Date(d.active.created_at).toLocaleDateString();
+                        } else if (d.draft) {
+                            statusBadge.innerText = 'Draft Mode';
+                            statusDesc.innerText = 'Draft available: ' + d.draft.version_name;
+                            lastUpd.innerText = new Date(d.draft.created_at).toLocaleDateString();
+                            currentDraftId = d.draft.id;
+                        } else {
+                            statusBadge.innerText = 'Not Generated';
+                            statusDesc.innerText = 'No timetable versions found.';
+                            lastUpd.innerText = '-';
+                        }
+                    }
+                });
+        }
+
+        function startGeneration() {
+            const btn = document.getElementById('btn-generate');
+            const resDiv = document.getElementById('generation-results');
+            const consoleOut = document.getElementById('console-output');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Generating...';
+            resDiv.classList.add('hidden');
+            consoleOut.classList.remove('hidden');
+            document.getElementById('console-lines').innerHTML = ''; // Request clear
+
+            log('Initializing generation process...');
+
+            fetch('actions/generate_timetable_v2.php')
+                .then(r => r.text()) // Get text first
+                .then(text => {
+                    try {
+                        const d = JSON.parse(text); // Try parse
+                        if (d.success) {
+                            log('Generation complete!');
+                            log(`Entries created: ${d.entries_count}`);
+                            log(`Conflicts detected: ${d.conflicts_count}`);
+
+                            currentDraftId = d.version_id;
+
+                            btn.innerHTML = '<i class="fas fa-play"></i> Regenerate';
+                            btn.disabled = false;
+
+                            resDiv.classList.remove('hidden');
+                            resDiv.classList.add('animate-fade-in');
+
+                            checkGenerationStatus(); // Update widget
+                        } else {
+                            log('Error: ' + d.message);
+                            alert('Generation Failed: ' + d.message);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
+                        }
+                    } catch (e) {
+                        // JSON Parse Failed
+                        console.error('Raw Server Response:', text);
+                        log('Fatal Error: Invalid Server Response');
+                        log('Raw Output: ' + text.substring(0, 100) + '...');
+                        alert('Server Error: ' + text); // Show the user the raw PHP error
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
+                    }
+                })
+                .catch(e => {
+                    log('Network Error: ' + e);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
+                });
+        }
+
+        function publishTimetable() {
+            if (!currentDraftId) return;
+
+            const btn = document.getElementById('btn-publish');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('version_id', currentDraftId);
+
+            fetch('actions/publish_timetable.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        showToast('Timetable Published Successfully!', 'success');
+                        checkGenerationStatus();
+                        // Reset UI
+                        document.getElementById('generation-results').classList.add('hidden');
+                        document.getElementById('console-output').classList.add('hidden');
+                    } else {
+                        showToast(d.message, 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = 'Publish';
+                    }
+                });
+        }
+
+        // View Timetable Logic
+        function loadViewVersions() {
+            fetch('actions/get_generation_status.php')
+                .then(r => r.json())
+                .then(d => {
+                    const sel = document.getElementById('view-version-id');
+                    sel.innerHTML = '<option value="">Select Version...</option>';
+                    if (d.active) {
+                        const opt = document.createElement('option');
+                        opt.value = d.active.id;
+                        opt.innerText = `Active: ${d.active.version_name} (${new Date(d.active.created_at).toLocaleDateString()})`;
+                        opt.selected = true; // Auto select active
+                        sel.appendChild(opt);
+                    }
+                    if (d.draft) {
+                        const opt = document.createElement('option');
+                        opt.value = d.draft.id;
+                        opt.innerText = `Draft: ${d.draft.version_name} (${new Date(d.draft.created_at).toLocaleDateString()})`;
+                        sel.appendChild(opt);
+                    }
+                });
+        }
+
+        function loadTimetableGrid() {
+            const vId = document.getElementById('view-version-id').value;
+            const sId = document.getElementById('view-section-id').value;
+
+            if (!vId || !sId) {
+                showToast('Please select Version and Section', 'info');
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="loadTimetableGrid()"]');
+            const originalInfo = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+            fetch(`actions/fetch_timetable_grid.php?version_id=${vId}&section_id=${sId}`)
+                .then(r => r.json())
+                .then(d => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalInfo;
+
+                    if (d.success) {
+                        renderGrid(d.entries);
+                        renderAllocations(d.allocations);
+                    } else {
+                        showToast(d.message, 'error');
+                    }
+                });
+        }
+
+        function renderGrid(entries) {
+            const tbody = document.getElementById('view-grid-body');
+            const container = document.getElementById('view-grid-container');
+            const empty = document.getElementById('view-empty-state');
+
+            tbody.innerHTML = '';
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+            days.forEach(day => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-50 last:border-b-0';
+
+                let html = `<td class="px-6 py-6 font-bold text-slate-800 bg-white sticky left-0 border-r border-slate-100">${day}</td>`;
+
+                // Periods 1-4
+                for (let i = 1; i <= 4; i++) {
+                    html += getCellHtml(day, i, entries);
+                }
+
+                // Lunch
+                html += `<td class="px-2 py-4 text-center bg-slate-50/50"><div class="h-full w-px mx-auto bg-slate-200 dashed"></div></td>`;
+
+                // Periods 5-7
+                for (let i = 5; i <= 7; i++) {
+                    html += getCellHtml(day, i, entries);
+                }
+
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+
+            container.classList.remove('hidden');
+            empty.classList.add('hidden');
+        }
+
+        function getCellHtml(day, period, entries) {
+            const key = `${day}-${period}`;
+            const entry = entries[key];
+
+            if (entry) {
+                return `
+                    <td class="px-4 py-4 align-top h-32 w-48 border-r border-slate-100 last:border-r-0">
+                        <div class="h-full flex flex-col justify-between group cursor-pointer hover:bg-white p-2 rounded-xl transition border border-transparent hover:border-indigo-100 hover:shadow-sm">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-1 block">
+                                    ${entry.subject_code}
+                                </span>
+                                <h4 class="text-sm font-bold text-slate-800 leading-tight mb-2 line-clamp-2" title="${entry.subject_name}">
+                                    ${entry.subject_name}
+                                </h4>
+                            </div>
+                            <div class="border-t border-slate-100 pt-2 mt-2">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span class="text-xs text-slate-500 font-medium truncate max-w-[100px]" title="${entry.faculty_name}">
+                                        ${entry.faculty_name}
+                                    </span>
+                                </div>
+                                 <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </div>
+                                    <span class="text-xs text-slate-500 font-medium">
+                                        ${entry.room_number || 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                            <button onclick='openEditModal(${JSON.stringify(entry)})' class="absolute top-2 right-2 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition bg-white rounded-full w-6 h-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                                <i class="fas fa-pencil-alt text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
+                 `;
+            } else {
+                return `
+                    <td class="px-4 py-4 align-top h-32 border-r border-slate-100 last:border-r-0">
+                        <div class="h-full flex items-center justify-center rounded-xl border border-dashed border-slate-200/50 bg-slate-50/30">
+                            <span class="text-[10px] font-bold text-slate-300">FREE</span>
+                        </div>
+                    </td>
+                `;
+            }
+        }
+
+        function renderAllocations(allocations) {
+            const wrapper = document.getElementById('view-allocations-wrapper');
+            const container = document.getElementById('view-allocations-list');
+            wrapper.classList.add('hidden');
+            container.innerHTML = '';
+
+            if (allocations && allocations.length > 0) {
+                wrapper.classList.remove('hidden');
+                allocations.forEach(a => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-4 hover:shadow-md transition bg-white';
+                    div.innerHTML = `
+                        <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm font-bold text-xs uppercase border border-indigo-100">
+                            ${a.subject_code ? a.subject_code.substring(0, 3) : 'SUB'}
+                        </div>
+                        <div class="overflow-hidden">
+                           <h5 class="text-sm font-bold text-slate-800 truncate" title="${a.subject_name}">${a.subject_name}</h5>
+                           <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                <span class="flex items-center gap-1"><i class="fas fa-user-circle"></i> ${a.faculty_name}</span>
+                                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                <span class="font-medium text-slate-600">${a.weekly_hours} Hrs</span>
+                           </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        // --- Existing Functions Below ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -1552,6 +2250,64 @@ if ($conn) {
                 setTimeout(() => toast.remove(), 400);
             }, 3000);
         }
+
+        // --- New Filter Functions ---
+        function filterSubjectSections() {
+            const deptId = document.getElementById('subject_dept_id').value;
+            const secSel = document.getElementById('subject_section_id');
+            const yearSel = document.getElementById('subject_year');
+            const semSel = document.getElementById('subject_semester');
+
+            secSel.innerHTML = '<option value="">-- All Sections --</option>';
+
+            if (!deptId) return;
+
+            // Filter ALL_SECTIONS
+            if (typeof ALL_SECTIONS !== 'undefined') {
+                const filtered = ALL_SECTIONS.filter(s => s.department_id == deptId);
+                filtered.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.innerText = `${s.section_name} (Yr ${s.year}, Sem ${s.semester})`;
+                    opt.dataset.year = s.year;
+                    opt.dataset.sem = s.semester;
+                    secSel.appendChild(opt);
+                });
+            }
+
+            // Auto-select logic
+            secSel.onchange = function () {
+                const opt = secSel.options[secSel.selectedIndex];
+                if (opt.value && opt.dataset.year) {
+                    yearSel.value = opt.dataset.year;
+                    semSel.value = opt.dataset.sem;
+                }
+            }
+        }
+
+        // Init View Filter
+        document.addEventListener('DOMContentLoaded', () => {
+            const viewDept = document.getElementById('view-dept-id');
+            if (viewDept) {
+                viewDept.addEventListener('change', function () {
+                    const deptId = this.value;
+                    const secSel = document.getElementById('view-section-id');
+                    secSel.innerHTML = '<option value="">Select Section</option>';
+                    if (!deptId) return;
+
+                    if (typeof ALL_SECTIONS !== 'undefined') {
+                        const filtered = ALL_SECTIONS.filter(s => s.department_id == deptId);
+                        filtered.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.id;
+                            opt.innerText = `${s.section_name} (Yr ${s.year}, Sem ${s.semester})`;
+                            secSel.appendChild(opt);
+                        });
+                    }
+                });
+            }
+        });
+
 
         function addSubject() {
             const form = document.getElementById('add-subject-form');
@@ -1580,11 +2336,18 @@ if ($conn) {
                         const sub = res.subject;
                         const row = document.createElement('tr');
                         row.className = 'hover:bg-slate-50 transition animate-fade-in';
+
+                        let details = [];
+                        if (sub.batch_year) details.push(sub.batch_year);
+                        if (sub.academic_year) details.push("Yr " + sub.academic_year);
+                        if (sub.semester) details.push("Sem " + sub.semester);
+                        if (sub.section_id) details.push("Sec ID:" + sub.section_id);
+
                         row.innerHTML = `
                             <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
                             <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
                             <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
-                            <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${details.join(' • ')}</td>
                             <td class="px-6 py-4 text-right">
                                 <button class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
@@ -1592,6 +2355,21 @@ if ($conn) {
                         `;
                         tbody.insertBefore(row, tbody.firstChild);
                         form.reset();
+
+                        // NEW: Dynamically update Allocation Dropdowns
+                        // 1. Update existing selects in the modal
+                        const allocSelects = document.querySelectorAll('select[name="subject_id[]"]');
+                        allocSelects.forEach(sel => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.id;
+                            opt.innerText = `${sub.name} (${sub.code})`;
+                            sel.appendChild(opt);
+                        });
+
+                        // 2. Update global ALL_SUBJECTS array if it exists (for robustness)
+                        if (typeof ALL_SUBJECTS !== 'undefined') {
+                            ALL_SUBJECTS.push(sub);
+                        }
                     } else {
                         showToast(res.message, 'error');
                         if (res.message && res.message.includes('Unauthorized')) {
@@ -1652,7 +2430,7 @@ if ($conn) {
 
         function deleteFaculty(id, btn) {
             if (!confirm('Are you sure you want to delete this faculty member?')) return;
-            
+
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -1723,7 +2501,281 @@ if ($conn) {
         }
 
 
+        function updateProfile(form) {
+            const btn = form.querySelector('button[type="submit"]');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            const fd = new FormData(form);
+            fetch('actions/update_profile.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                })
+                .catch(e => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    showToast('Connection error', 'error');
+                });
+        }
+
+        function changePassword(form) {
+            const btn = form.querySelector('button[type="submit"]');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            const fd = new FormData(form);
+            fetch('actions/change_password.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        form.reset();
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                })
+                .catch(e => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    showToast('Connection error', 'error');
+                });
+        }
+        // PDF Export
+        async function downloadTimetablePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+
+            const deptSel = document.getElementById('view-dept-id');
+            const deptName = deptSel.options[deptSel.selectedIndex].text;
+            const versionSel = document.getElementById('view-version-id');
+            const verName = versionSel.options[versionSel.selectedIndex].text;
+
+            doc.setFontSize(18);
+            doc.text("Master Timetable - " + deptName, 14, 22);
+            doc.setFontSize(11);
+            doc.text("Version: " + verName, 14, 30);
+            doc.text("Generated: " + new Date().toLocaleDateString(), 14, 36);
+
+            const table = document.querySelector('#view-grid-container table');
+
+            if (!table) {
+                alert("Please load a timetable first.");
+                return;
+            }
+
+            doc.autoTable({
+                html: table,
+                startY: 45,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [16, 185, 129] }, // Emerald color
+                didParseCell: function (data) {
+                    // Start from 1 because index 0 is time column
+                    if (data.section === 'body' && data.column.index > 0) {
+                        // Clean up cell text (remove icons etc if needed)
+                        let text = data.cell.raw.innerText || "";
+                        // Replace newlines with comma for compactness if needed, or keep as is
+                        data.cell.text = text.trim();
+                    }
+                }
+            });
+
+            doc.save(`Timetable_${deptName.replace(/\s+/g, '_')}.pdf`);
+        }
     </script>
+    async function downloadTimetablePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+
+    // Check if table is visible
+    const container = document.getElementById('view-grid-container');
+    if (container.classList.contains('hidden')) {
+    showToast('Please load a timetable first!', 'error');
+    return;
+    }
+
+    // Get Title Info
+    const deptSelect = document.getElementById('view-dept-id');
+    const sectionSelect = document.getElementById('view-section-id');
+
+    const deptName = deptSelect.options[deptSelect.selectedIndex].text.trim();
+    const sectionName = sectionSelect.options[sectionSelect.selectedIndex].text.trim();
+
+    doc.setFontSize(22);
+    doc.setTextColor(40);
+    doc.text('Class Timetable', 14, 15);
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Department: ${deptName}`, 14, 25);
+    doc.text(`Section: ${sectionName}`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 250, 32, { align: 'right' });
+
+    // Prepare Data for AutoTable
+    // We manually parse to ensure clean output, as HTML parsing of complex divs can be messy
+    const table = container.querySelector('table');
+    const rows = [];
+    const headers = ['Day / Period', '1', '2', '3', 'Lunch', '4', '5', '6', '7']; // Simplified headers
+
+    // Iterate Rows
+    const trs = table.querySelectorAll('tbody tr');
+    trs.forEach(tr => {
+    const rowData = [];
+    // Day
+    rowData.push(tr.cells[0].innerText.trim());
+
+    // Periods
+    for(let i=1; i<tr.cells.length; i++) { let cellText=tr.cells[i].innerText.trim(); // Clean up newlines from the UI
+        card layout to make it comma separated or just clean space cellText=cellText.replace(/\n\s*\n/g, '\n' ); //
+        Remove multiple empty lines rowData.push(cellText); } rows.push(rowData); }); doc.autoTable({ head: [headers],
+        body: rows, startY: 40, theme: 'grid' , headStyles: { fillColor: [79, 70, 229], // Indigo 600 textColor: 255,
+        fontStyle: 'bold' }, styles: { fontSize: 10, cellPadding: 4, valign: 'middle' , overflow: 'linebreak' },
+        columnStyles: { 0: { fontStyle: 'bold' , fillColor: [248, 250, 252] } // First Col (Day) }, didDrawPage:
+        function (data) { // Footer doc.setFontSize(10); doc.text('Generated by AutoTime', data.settings.margin.left,
+        doc.internal.pageSize.height - 10); } }); doc.save(`Timetable_${sectionName.replace(/[^a-z0-9]/gi, '_' )}.pdf`);
+        showToast('PDF Downloaded!', 'success' ); } // --- Manual Override Logic --- let currentEditEntryId=null;
+        function openEditModal(entry) { currentEditEntryId=entry.id; // Populate Dropdowns const
+        subSel=document.querySelector('select[name="edit_subject_id" ]'); const
+        facSel=document.querySelector('select[name="edit_faculty_id" ]'); const
+        roomSel=document.querySelector('select[name="edit_room_id" ]'); const viewDeptId = document.getElementById('view-dept-id').value;
+
+        subSel.innerHTML='' ; 
+        ALL_SUBJECTS.forEach(s=> {
+        if (viewDeptId && s.department_id != viewDeptId) return;
+
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.text = `${s.name} (${s.code})`;
+        if(s.id == entry.subject_id) opt.selected = true;
+        subSel.appendChild(opt);
+        });
+
+        facSel.innerHTML = '';
+        ALL_FACULTIES.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.text = f.name;
+        if(f.id == entry.faculty_id) opt.selected = true;
+        facSel.appendChild(opt);
+        });
+
+        roomSel.innerHTML = '<option value="">No Room</option>';
+        ALL_ROOMS.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.text = `${r.name} (${r.type})`;
+        if(r.id == entry.room_id) opt.selected = true;
+        roomSel.appendChild(opt);
+        });
+
+        document.getElementById('edit-entry-modal').classList.remove('hidden');
+        }
+
+        function saveEditEntry(force = false) {
+        const fd = new FormData(document.getElementById('edit-entry-form'));
+        fd.append('entry_id', currentEditEntryId);
+        if(force) fd.append('force', 'true');
+
+        const btn = document.getElementById('btn-save-edit');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch('actions/update_timetable_entry.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+
+        if(d.success) {
+        showToast(d.message, 'success');
+        document.getElementById('edit-entry-modal').classList.add('hidden');
+        loadTimetableGrid(); // Refresh
+        } else if (d.status === 'conflict') {
+        if(confirm("Conflict Detected:\n" + d.message + "\n\nDo you want to FORCE this assignment anyway?")) {
+        saveEditEntry(true);
+        }
+        } else {
+        showToast(d.message, 'error');
+        }
+        });
+        }
+
+        // --- Reports Logic ---
+        function loadWorkloadReport() {
+        const container = document.getElementById('workload-container');
+        if(!container) return; // Guard clause
+
+        container.innerHTML = '<div class="text-slate-400 text-sm italic">Loading workload data...</div>';
+
+        fetch('actions/fetch_workload.php')
+        .then(r => r.json())
+        .then(res => {
+        if(res.success) {
+        renderWorkload(res.data);
+        } else {
+        container.innerHTML = `<div class="text-red-500 text-sm font-bold">${res.message}</div>`;
+        }
+        })
+        .catch(err => {
+        container.innerHTML = `<div class="text-red-500 text-sm">Error: ${err.message}</div>`;
+        });
+        }
+
+        function renderWorkload(data) {
+        const container = document.getElementById('workload-container');
+        if(!data || data.length === 0) {
+        container.innerHTML = '<div class="text-slate-400">No data found.</div>';
+        return;
+        }
+
+        let html = '';
+        const maxLoad = 20; // Assumption for bar scaling
+
+        data.forEach(fac => {
+        const hours = parseInt(fac.total_hours);
+        const percent = Math.min((hours / maxLoad) * 100, 100);
+
+        let colorClass = 'bg-emerald-500';
+        if(hours > 18) colorClass = 'bg-red-500'; // Overload
+        else if (hours < 12) colorClass='bg-amber-400' ; // Underload html +=` <div
+            class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-fade-in">
+            <div
+                class="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-slate-600 text-xs shadow-sm">
+                ${fac.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between mb-1">
+                    <h4 class="font-bold text-slate-700 text-sm">${fac.name} <span
+                            class="text-slate-400 font-normal text-xs">(${fac.dept_name || 'N/A'})</span></h4>
+                    <span class="font-bold text-slate-800 text-sm">${hours} Hrs</span>
+                </div>
+                <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full ${colorClass}" style="width: ${percent}%"></div>
+                </div>
+            </div>
+            </div>
+            `;
+            });
+            container.innerHTML = html;
+            }
+
+            // Lazy load trigger
+            window.addEventListener('hashchange', () => {
+            if(window.location.hash === '#reports') loadWorkloadReport();
+            });
+            </script>
 </body>
 
 </html>
