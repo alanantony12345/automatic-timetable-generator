@@ -344,26 +344,10 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-                <div class="relative group">
-                    <button id="link-dept-manage" onclick="showSection('dept-manage')"
-                        class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                        <div class="flex items-center gap-3"><i class="fas fa-building"></i> Departments</div>
-                        <i class="fas fa-chevron-right text-[10px] transition-transform group-hover:rotate-90"></i>
-                    </button>
-                    <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
-                        <a href="javascript:void(0)" onclick="showSection('dept-manage')"
-                            class="block py-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">Manage
-                            All</a>
-                        <?php foreach ($departments_list as $dept): ?>
-                            <a href="javascript:void(0)"
-                                onclick="showSection('dept-manage'); /* Future: Filter by this dept */"
-                                class="block py-1.5 text-xs text-slate-500 hover:text-indigo-600 transition truncate"
-                                title="<?php echo htmlspecialchars($dept['name']); ?>">
-                                <?php echo htmlspecialchars($dept['name']); ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
+                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
+                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                    <i class="fas fa-building"></i> Departments
+                </a>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -622,44 +606,24 @@ if ($conn) {
                                 <select name="department_id" id="subject_dept_id" required
                                     onchange="filterSubjectSections()"
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">-- Select Department --</option>
-                                    <?php foreach ($departments_list as $dept): ?>
-                                        <option value="<?php echo $dept['id']; ?>">
-                                            <?php echo htmlspecialchars($dept['name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <option value="">Select Dept</option>
+                                    <?php if (empty($departments_list)): ?>
+                                        <option value="" disabled>No departments found</option>
+                                    <?php else: ?>
+                                        <?php foreach ($departments_list as $dept): ?>
+                                            <option value="<?php echo $dept['id']; ?>">
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
-                            </div>
-                            <!-- New Fields -->
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Academic
-                                    Year</label>
-                                <select name="academic_year" id="subject_year" required
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Year</option>
-                                    <option value="1">1st Year</option>
-                                    <option value="2">2nd Year</option>
-                                    <option value="3">3rd Year</option>
-                                    <option value="4">4th Year</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Semester</label>
-                                <select name="semester" id="subject_semester" required
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Sem</option>
-                                    <?php for ($i = 1; $i <= 8; $i++)
-                                        echo "<option value='$i'>Sem $i</option>"; ?>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section
-                                    (Optional)</label>
-                                <select name="section_id" id="subject_section_id"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">-- All Sections --</option>
-                                    <!-- Populated by JS -->
-                                </select>
+                                <?php if (empty($departments_list)): ?>
+                                    <p class="text-xs text-red-500 mt-1">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        No departments available. <a href="#" onclick="showSection('dept-manage')"
+                                            class="text-indigo-600 underline">Add departments first</a>
+                                    </p>
+                                <?php endif; ?>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
                                 <button type="submit"
