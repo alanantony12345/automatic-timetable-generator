@@ -43,11 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_name'] = $name;
                 $_SESSION['role'] = $role;
 
+                // Redirect to Student Dashboard (or general dashboard if same)
                 $redirect_url = 'dashboard.php';
-                if ($role === 'Admin')
-                    $redirect_url = 'admin_dashboard.php';
-                elseif ($role === 'Faculty')
-                    $redirect_url = 'faculty_dashboard.php';
 
                 echo "<script>alert('Login Successful! Redirecting...'); window.location.href='" . $redirect_url . "';</script>";
                 exit();

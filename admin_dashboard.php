@@ -63,14 +63,14 @@ if ($conn) {
             $stats['subjects'] = $res->fetch_row()[0];
 
         // Fetch Subjects (Limited)
-        $sub_query = "SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.created_at DESC LIMIT 10";
+        $sub_query = "SELECT s.*, d.name AS department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.id ORDER BY s.created_at DESC LIMIT 10";
         if ($res = $conn->query($sub_query)) {
             while ($row = $res->fetch_assoc())
                 $subjects_list[] = $row;
         }
 
         // Fetch All Subjects
-        if ($res = $conn->query("SELECT s.*, d.department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.department_id ORDER BY s.name ASC")) {
+        if ($res = $conn->query("SELECT s.*, d.name AS department_name FROM subjects s LEFT JOIN departments d ON s.department_id = d.id ORDER BY s.name ASC")) {
             while ($row = $res->fetch_assoc())
                 $all_subjects_list[] = $row;
         }
@@ -299,9 +299,11 @@ if ($conn) {
                         <i class="fas fa-chevron-down text-[10px] transition-transform group-hover:rotate-180"></i>
                     </button>
                     <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
-                        <a href="#" class="block py-1.5 text-sm text-slate-500 hover:text-red-500 transition"><i
+                        <a href="actions/export_timetable.php?format=pdf"
+                            class="block py-1.5 text-sm text-slate-500 hover:text-red-500 transition"><i
                                 class="far fa-file-pdf mr-2"></i>PDF Format</a>
-                        <a href="#" class="block py-1.5 text-sm text-slate-500 hover:text-green-600 transition"><i
+                        <a href="actions/export_timetable.php?format=excel"
+                            class="block py-1.5 text-sm text-slate-500 hover:text-green-600 transition"><i
                                 class="far fa-file-excel mr-2"></i>Excel Format</a>
                     </div>
                 </div>
@@ -479,8 +481,8 @@ if ($conn) {
                                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
                                     <option value="">Select Dept</option>
                                     <?php foreach ($departments_list as $dept): ?>
-                                        <option value="<?php echo $dept['department_id']; ?>">
-                                            <?php echo htmlspecialchars($dept['department_name']); ?>
+                                        <option value="<?php echo $dept['id']; ?>">
+                                            <?php echo htmlspecialchars($dept['name']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -821,7 +823,8 @@ if ($conn) {
         <!-- Modals -->
 
         <!-- Edit Subject Modal -->
-        <div id="edit-subject-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+        <div id="edit-subject-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
             <div class="bg-white p-8 rounded-3xl w-full max-w-4xl shadow-2xl">
                 <h3 class="text-xl font-bold text-slate-800 mb-6">Edit Subject</h3>
                 <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();">
@@ -829,19 +832,23 @@ if ($conn) {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
-                            <input type="text" name="name" id="edit-subject-name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                            <input type="text" name="name" id="edit-subject-name" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
-                            <input type="text" name="code" id="edit-subject-code" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                            <input type="text" name="code" id="edit-subject-code" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
-                            <input type="number" name="credits" id="edit-subject-credits" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                            <input type="number" name="credits" id="edit-subject-credits" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Batch / Year</label>
-                            <select name="batch_year" id="edit-subject-batch" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                            <select name="batch_year" id="edit-subject-batch"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
                                 <option value="2024-2028">2024-2028</option>
                                 <option value="2023-2027">2023-2027</option>
                                 <option value="2022-2026">2022-2026</option>
@@ -849,18 +856,25 @@ if ($conn) {
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                             <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-                             <select name="department_id" id="edit-subject-dept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
-                                 <option value="">Select Dept</option>
-                                 <?php foreach ($departments_list as $dept): ?>
-                                     <option value="<?php echo $dept['department_id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
-                                 <?php endforeach; ?>
-                             </select>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
+                            <select name="department_id" id="edit-subject-dept" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                <option value="">Select Dept</option>
+                                <?php foreach ($departments_list as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>">
+                                        <?php echo htmlspecialchars($dept['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="flex gap-4">
-                        <button type="button" onclick="document.getElementById('edit-subject-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Cancel</button>
-                        <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg">Update Subject</button>
+                        <button type="button"
+                            onclick="document.getElementById('edit-subject-modal').classList.add('hidden')"
+                            class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Cancel</button>
+                        <button type="submit"
+                            class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg">Update
+                            Subject</button>
                     </div>
                 </form>
             </div>
@@ -892,8 +906,8 @@ if ($conn) {
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['department_id']; ?>">
-                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                <option value="<?php echo $dept['id']; ?>">
+                                    <?php echo htmlspecialchars($dept['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -925,8 +939,8 @@ if ($conn) {
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['department_id']; ?>">
-                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                <option value="<?php echo $dept['id']; ?>">
+                                    <?php echo htmlspecialchars($dept['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -1153,14 +1167,14 @@ if ($conn) {
                         }
 
                         const sub = res.subject;
-                    
-                    // Get department name from dropdown
-                    const deptSelect = form.querySelector('select[name="department_id"]');
-                    const deptName = deptSelect.options[deptSelect.selectedIndex].text;
 
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                    row.innerHTML = `
+                        // Get department name from dropdown
+                        const deptSelect = form.querySelector('select[name="department_id"]');
+                        const deptName = deptSelect.options[deptSelect.selectedIndex].text;
+
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
                         <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
                         <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
                         <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
