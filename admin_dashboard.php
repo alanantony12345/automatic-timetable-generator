@@ -31,10 +31,7 @@ $stats = [
 $subjects_list = [];
 $faculties_list = [];
 $sections_list = [];
-<<<<<<< HEAD
 $all_sections_list = [];
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 $rooms_list = [];
 $logs_list = [];
 
@@ -122,7 +119,6 @@ if ($conn) {
             while ($row = $res->fetch_assoc())
                 $sections_list[] = $row;
         }
-<<<<<<< HEAD
 
         // Use 'department_name' alias for compatibility with view logic
         $all_sec_query = "SELECT s.*, d.name as department_name FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY s.section_name ASC";
@@ -130,8 +126,6 @@ if ($conn) {
             while ($row = $res->fetch_assoc())
                 $all_sections_list[] = $row;
         }
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
     }
 
     // Audit Logs
@@ -181,11 +175,8 @@ if ($conn) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<<<<<<< HEAD
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -300,7 +291,6 @@ if ($conn) {
             border-left-color: #3b82f6;
         }
     </style>
-<<<<<<< HEAD
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script>
@@ -309,8 +299,6 @@ if ($conn) {
         const ALL_ROOMS = <?php echo json_encode($rooms_list); ?>;
         const ALL_SECTIONS = <?php echo json_encode($all_sections_list); ?>;
     </script>
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 </head>
 
 <body class="overflow-hidden">
@@ -356,7 +344,6 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-<<<<<<< HEAD
                 <div class="relative group">
                     <button id="link-dept-manage" onclick="showSection('dept-manage')"
                         class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
@@ -377,12 +364,6 @@ if ($conn) {
                         <?php endforeach; ?>
                     </div>
                 </div>
-=======
-                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
-                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                    <i class="fas fa-building"></i> Departments
-                </a>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -499,7 +480,6 @@ if ($conn) {
 
             <!-- 1. DASHBOARD OVERVIEW -->
             <section id="overview-section" class="space-y-8">
-<<<<<<< HEAD
                 <!-- Status Widget -->
                 <div
                     class="bg-indigo-900 rounded-3xl p-8 text-white flex items-center justify-between shadow-xl relative overflow-hidden">
@@ -523,8 +503,6 @@ if ($conn) {
                     </div>
                 </div>
 
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-slate-100">
                         <div
@@ -639,7 +617,6 @@ if ($conn) {
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-<<<<<<< HEAD
                                 <select name="department_id" id="subject_dept_id" required
                                     onchange="filterSubjectSections()"
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
@@ -680,20 +657,6 @@ if ($conn) {
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                                     <option value="">-- All Sections --</option>
                                     <!-- Populated by JS -->
-=======
-                                <select name="department_id" required
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Dept</option>
-                                    <?php if (empty($departments_list)): ?>
-                                        <option value="" disabled>No departments found</option>
-                                    <?php else: ?>
-                                        <?php foreach ($departments_list as $dept): ?>
-                                            <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                                 </select>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
@@ -712,11 +675,7 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Code</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Credits</th>
-<<<<<<< HEAD
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Details</th>
-=======
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Batch/Year</th>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
@@ -735,7 +694,6 @@ if ($conn) {
                                                 <?php echo htmlspecialchars($sub['credits'] ?? 'N/A'); ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500">
-<<<<<<< HEAD
                                                 <?php
                                                 $details = [];
                                                 if (!empty($sub['batch_year']))
@@ -748,9 +706,6 @@ if ($conn) {
                                                     $details[] = "Sec ID:" . $sub['section_id']; // Could map to name if joined
                                                 echo implode(' • ', $details);
                                                 ?>
-=======
-                                                <?php echo htmlspecialchars($sub['batch_year'] ?? 'All'); ?>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
@@ -1068,7 +1023,6 @@ if ($conn) {
 
             <section id="generate-section"
                 class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-<<<<<<< HEAD
                 <div class="bg-white p-12 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-2xl w-full">
                     <div
                         class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-600 text-4xl mx-auto shadow-sm">
@@ -1357,23 +1311,6 @@ if ($conn) {
                 </div>
             </section>
 
-=======
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <form action="actions/generate_timetable.php" method="POST">
-                    <button type="submit"
-                        class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                        Generation</button>
-                </form>
-            </section>
-
-            <!-- OPERATIONS Placeholder -->
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             <?php
             $sections_path = __DIR__ . '/includes/admin_sections.html';
             if (file_exists($sections_path)) {
@@ -1381,23 +1318,7 @@ if ($conn) {
             }
             ?>
 
-<<<<<<< HEAD
 
-=======
-            <section id="generate-section"
-                class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <button
-                    class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                    Generation</button>
-            </section>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
         </div>
 
         <!-- Modals -->
@@ -1575,7 +1496,6 @@ if ($conn) {
                             Department</button>
                     </div>
                 </form>
-<<<<<<< HEAD
                 </form>
             </div>
         </div>
@@ -1610,8 +1530,6 @@ if ($conn) {
                             Changes</button>
                     </div>
                 </form>
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             </div>
         </div>
 
@@ -1622,22 +1540,16 @@ if ($conn) {
             // Update URL hash without jumping if possible
             window.location.hash = sectionId;
 
-<<<<<<< HEAD
             // Alias regenerate to generate
             if (sectionId === 'regenerate') sectionId = 'generate';
 
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             // 1. Hide all sections
             const sections = document.querySelectorAll('section');
             sections.forEach(sec => {
                 if (sec.id && sec.id.endsWith('-section')) {
                     sec.classList.add('hidden');
                 }
-<<<<<<< HEAD
                 // Custom check if manual sections array was used previously, but querySelectorAll is safer
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             });
 
             // 2. Remove active class from all links
@@ -1672,15 +1584,11 @@ if ($conn) {
                 'regenerate': 'Regenerate Timetable',
                 'profile': 'Admin Profile',
                 'password': 'Change Password',
-<<<<<<< HEAD
                 'user-manage': 'User Management',
                 'password': 'Change Password',
                 'user-manage': 'User Management',
                 'view-dept-wise': 'View Timetable (Department)',
                 'reports': 'Reports & Analytics'
-=======
-                'user-manage': 'User Management'
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             };
             const titleEl = document.getElementById('section-title');
             if (titleEl) {
@@ -1976,11 +1884,7 @@ if ($conn) {
 
         function deleteSection(id, btn) {
             if (!confirm('Are you sure you want to delete this section?')) return;
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -2024,7 +1928,6 @@ if ($conn) {
             }
         }
 
-<<<<<<< HEAD
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkGenerationStatus();
@@ -2325,9 +2228,6 @@ if ($conn) {
         }
 
         // --- Existing Functions Below ---
-=======
-        // Toast System
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -2351,7 +2251,6 @@ if ($conn) {
             }, 3000);
         }
 
-<<<<<<< HEAD
         // --- New Filter Functions ---
         function filterSubjectSections() {
             const deptId = document.getElementById('subject_dept_id').value;
@@ -2410,8 +2309,6 @@ if ($conn) {
         });
 
 
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
         function addSubject() {
             const form = document.getElementById('add-subject-form');
             const btn = form.querySelector('button[type="submit"]');
@@ -2439,7 +2336,6 @@ if ($conn) {
                         const sub = res.subject;
                         const row = document.createElement('tr');
                         row.className = 'hover:bg-slate-50 transition animate-fade-in';
-<<<<<<< HEAD
 
                         let details = [];
                         if (sub.batch_year) details.push(sub.batch_year);
@@ -2447,17 +2343,11 @@ if ($conn) {
                         if (sub.semester) details.push("Sem " + sub.semester);
                         if (sub.section_id) details.push("Sec ID:" + sub.section_id);
 
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                         row.innerHTML = `
                             <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
                             <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
                             <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
-<<<<<<< HEAD
                             <td class="px-6 py-4 text-sm text-slate-500">${details.join(' • ')}</td>
-=======
-                            <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                             <td class="px-6 py-4 text-right">
                                 <button class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
@@ -2465,7 +2355,6 @@ if ($conn) {
                         `;
                         tbody.insertBefore(row, tbody.firstChild);
                         form.reset();
-<<<<<<< HEAD
 
                         // NEW: Dynamically update Allocation Dropdowns
                         // 1. Update existing selects in the modal
@@ -2481,8 +2370,6 @@ if ($conn) {
                         if (typeof ALL_SUBJECTS !== 'undefined') {
                             ALL_SUBJECTS.push(sub);
                         }
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                     } else {
                         showToast(res.message, 'error');
                         if (res.message && res.message.includes('Unauthorized')) {
@@ -2543,11 +2430,7 @@ if ($conn) {
 
         function deleteFaculty(id, btn) {
             if (!confirm('Are you sure you want to delete this faculty member?')) return;
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             const row = btn.closest('tr');
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -2618,7 +2501,6 @@ if ($conn) {
         }
 
 
-<<<<<<< HEAD
         function updateProfile(form) {
             const btn = form.querySelector('button[type="submit"]');
             const originalHTML = btn.innerHTML;
@@ -2894,9 +2776,6 @@ if ($conn) {
             if(window.location.hash === '#reports') loadWorkloadReport();
             });
             </script>
-=======
-    </script>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 </body>
 
 </html>
