@@ -1,112 +1,164 @@
 <?php
-require __DIR__ . '/../config/db.php';
+session_start();
+require '../config/db.php';
 
-if (isset($_GET['format'])) {
-    $format = $_GET['format'];
+// Check if user is logged in and is Admin
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || strcasecmp($_SESSION['role'], 'Admin') !== 0) {
+    // If not admin, redirect or unauthorized
+    header("Location: ../admin_login.php");
+    exit();
+}
 
-    // Fetch Latest Timetable Version
-    // We use the query seen in previous logs: ORDER BY created_at DESC LIMIT 1
-    $stmt = $conn->prepare("SELECT id, data_json, version_name, created_at FROM timetable_versions ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute();
-    $result = $stmt->get_result();
+// 1. Determine Format
+$format = $_GET['format'] ?? 'excel';
 
-    if ($row = $result->fetch_assoc()) {
-        $timetable = json_decode($row['data_json'], true);
-        $version_name = $row['version_name'];
-        $version_id = $row['id'];
+// 2. Fetch Latest Timetable Version
+// We look for the latest entry in timetable_versions
+$stmt = $conn->prepare("SELECT data_json, version_name, created_at FROM timetable_versions ORDER BY created_at DESC LIMIT 1");
+$stmt->execute();
+$res = $stmt->get_result();
 
-        if ($format === 'excel') {
-            // Headers for Excel download
-            header("Content-Type: application/vnd.ms-excel");
-            header("Content-Disposition: attachment; filename=timetable_{$version_name}.xls");
-            header("Pragma: no-cache");
-            header("Expires: 0");
+if ($res->num_rows === 0) {
+    die("No generated timetable found. Please generate a timetable first.");
+}
 
-            // Fetch Reference Data (Names) to resolve IDs
-            $subjects = [];
-            $faculties = [];
-            $rooms = [];
-            $sections = [];
+$row = $res->fetch_assoc();
+$timetableData = json_decode($row['data_json'], true);
+$versionName = $row['version_name'];
+$createdAt = $row['created_at'];
 
-            // Helper to fetch data into array
-            function fetchData($conn, $table, &$array)
-            {
-                $res = $conn->query("SELECT * FROM $table");
-                while ($r = $res->fetch_assoc())
-                    $array[$r['id']] = $r;
-            }
-            fetchData($conn, 'subjects', $subjects);
-            fetchData($conn, 'faculties', $faculties);
-            fetchData($conn, 'classrooms', $rooms);
-            fetchData($conn, 'sections', $sections);
+if (!$timetableData) {
+    die("Error decoding timetable data.");
+}
 
-            echo "<html>";
-            echo "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">";
-            echo "<body>";
-            echo "<h2>Timetable: $version_name</h2>";
-            echo "<p>Generated on: " . $row['created_at'] . "</p>";
+// 3. Fetch Helper Data to Map IDs to Names
+// Faculties
+$faculties = [];
+$res = $conn->query("SELECT id, name FROM faculties");
+if ($res) {
+    while ($r = $res->fetch_assoc())
+        $faculties[$r['id']] = $r['name'];
+}
 
-            echo "<table border='1'>";
-            echo "<tr style='background-color:#f0f0f0; font-weight:bold;'>
-                <th>Day</th>
-                <th>Period</th>
-                <th>Section</th>
-                <th>Subject Code</th>
-                <th>Subject Name</th>
-                <th>Faculty</th>
-                <th>Room</th>
-                <th>Type</th>
-            </tr>";
+// Subjects
+$subjects = [];
+$res = $conn->query("SELECT id, name, code FROM subjects");
+if ($res) {
+    while ($r = $res->fetch_assoc())
+        $subjects[$r['id']] = $r;
+}
 
-            // Iterate and populate rows
-            // Logic: The JSON structure is $timetable[$day][$period][$section_id] = $entry
-            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+// Rooms
+$rooms = [];
+// Based on grep, columns are name, type, capacity
+$res = $conn->query("SELECT id, name FROM classrooms");
+if ($res) {
+    while ($r = $res->fetch_assoc())
+        $rooms[$r['id']] = $r['name'];
+}
 
-            foreach ($days as $day) {
-                if (!isset($timetable[$day]))
-                    continue;
+// Sections
+$sections = [];
+$sec_query = "SELECT s.id, s.section_name, d.name as dept_name, s.year, s.semester 
+              FROM sections s 
+              LEFT JOIN departments d ON s.department_id = d.id";
+$res = $conn->query($sec_query);
+if ($res) {
+    while ($r = $res->fetch_assoc())
+        $sections[$r['id']] = $r;
+}
 
-                // Sort periods? Assuming numeric logic 1..N
-                ksort($timetable[$day]);
+// 4. Generate Output based on Format
+if ($format === 'excel') {
+    $filename = "Timetable_Export_" . date('Y-m-d_H-i') . ".xls";
 
-                foreach ($timetable[$day] as $period => $sec_data) {
-                    foreach ($sec_data as $sec_id => $entry) {
-                        // Resolve Names
-                        $sec_name = isset($sections[$entry['section_id']]) ? $sections[$entry['section_id']]['section_name'] : 'Unknown Section';
-                        $sub_code = isset($subjects[$entry['subject_id']]) ? $subjects[$entry['subject_id']]['code'] : '-';
-                        $sub_name = isset($subjects[$entry['subject_id']]) ? $subjects[$entry['subject_id']]['name'] : 'Unknown Subject';
-                        $fac_name = isset($faculties[$entry['faculty_id']]) ? $faculties[$entry['faculty_id']]['name'] : 'TBA';
-                        $room_name = isset($rooms[$entry['room_id']]) ? $rooms[$entry['room_id']]['room_number'] : 'TBA';
-                        $type = $entry['type'] ?? 'Theory';
+    // Headers for Excel Download
+    header("Content-Type: application/vnd.ms-excel");
+    header("Content-Disposition: attachment; filename=\"$filename\"");
+    header("Pragma: no-cache");
+    header("Expires: 0");
 
-                        echo "<tr>";
-                        echo "<td>$day</td>";
-                        echo "<td>$period</td>";
-                        echo "<td>$sec_name</td>";
-                        echo "<td>$sub_code</td>";
-                        echo "<td>$sub_name</td>";
-                        echo "<td>$fac_name</td>";
-                        echo "<td>$room_name</td>";
-                        echo "<td>$type</td>";
-                        echo "</tr>";
-                    }
+    // Start Output
+    echo "<!DOCTYPE html>";
+    echo "<html>";
+    echo "<head><meta charset='UTF-8'></head>";
+    echo "<body>";
+
+    echo "<h3>Timetable Export: $versionName</h3>";
+    echo "<p>Generated on: $createdAt</p>";
+
+    echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
+    echo "<thead style='background-color: #f2f2f2;'>";
+    echo "<tr>
+            <th style='padding: 8px; text-align: left;'>Day</th>
+            <th style='padding: 8px; text-align: left;'>Period</th>
+            <th style='padding: 8px; text-align: left;'>Department</th>
+            <th style='padding: 8px; text-align: left;'>Year / Sem</th>
+            <th style='padding: 8px; text-align: left;'>Section</th>
+            <th style='padding: 8px; text-align: left;'>Subject Code</th>
+            <th style='padding: 8px; text-align: left;'>Subject Name</th>
+            <th style='padding: 8px; text-align: left;'>Faculty</th>
+            <th style='padding: 8px; text-align: left;'>Room</th>
+            <th style='padding: 8px; text-align: left;'>Type</th>
+          </tr>";
+    echo "</thead>";
+    echo "<tbody>";
+
+    // Iterate through the structure
+    // $timetable[day][period][section_id] = ['subject_id'=>..., 'faculty_id'=>..., 'room_id'=>..., 'type'=>...]
+    if (is_array($timetableData)) {
+        foreach ($timetableData as $day => $periods) {
+            // Sort periods if needed, assuming keys are 1, 2, 3...
+            ksort($periods);
+
+            foreach ($periods as $period => $sectionEntries) {
+                foreach ($sectionEntries as $sectionId => $entry) {
+                    $secInfo = $sections[$sectionId] ?? null;
+                    if (!$secInfo)
+                        continue; // Should not happen if data is consistent
+
+                    $deptName = $secInfo['dept_name'] ?? '-';
+                    $yearSem = "Yr {$secInfo['year']} Sem {$secInfo['semester']}";
+                    $secName = $secInfo['section_name'] ?? '-';
+
+                    $subId = $entry['subject_id'] ?? null;
+                    $facId = $entry['faculty_id'] ?? null;
+                    $roomId = $entry['room_id'] ?? null;
+                    $type = $entry['type'] ?? 'Theory';
+
+                    $sCode = $subjects[$subId]['code'] ?? '-';
+                    $sName = $subjects[$subId]['name'] ?? '-';
+                    $fName = $faculties[$facId] ?? 'Unassigned';
+                    $rName = $rooms[$roomId] ?? 'Unassigned';
+
+                    echo "<tr>";
+                    echo "<td style='padding: 8px;'>$day</td>";
+                    echo "<td style='padding: 8px;'>$period</td>";
+                    echo "<td style='padding: 8px;'>$deptName</td>";
+                    echo "<td style='padding: 8px;'>$yearSem</td>";
+                    echo "<td style='padding: 8px;'>$secName</td>";
+                    echo "<td style='padding: 8px;'>$sCode</td>";
+                    echo "<td style='padding: 8px;'>$sName</td>";
+                    echo "<td style='padding: 8px;'>$fName</td>";
+                    echo "<td style='padding: 8px;'>$rName</td>";
+                    echo "<td style='padding: 8px;'>$type</td>";
+                    echo "</tr>";
                 }
             }
-            echo "</table>";
-            echo "</body></html>";
-            exit();
-
-        } elseif ($format === 'pdf') {
-            // Basic Placeholder for PDF
-            echo "<h1>PDF Export</h1>";
-            echo "<p>PDF generation requires a library like TCPDF. Please install via composer or use the Excel export.</p>";
-            echo "<p><a href='javascript:history.back()'>Go Back</a></p>";
         }
-    } else {
-        echo "<h1>No generated timetable found.</h1>";
-        echo "<p>Please generate a timetable first from the Admin Dashboard.</p>";
     }
+
+    echo "</tbody>";
+    echo "</table>";
+    echo "</body>";
+    echo "</html>";
+
+} elseif ($format === 'pdf') {
+    // Placeholder for PDF - currently we handle that via frontend jsPDF mostly, 
+    // or we could implement a backend TCPDF/MPDF solution here.
+    // For now, let's just stick to the requested Excel format or show a message.
+    echo "PDF generation is handled on the client-side for this version.";
 } else {
-    echo "Invalid request.";
+    echo "Invalid format specified.";
 }
 ?>

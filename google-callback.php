@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'config/db.php';
+require __DIR__ . '/config/db.php';
 require 'config/google_auth.php';
 
 if (!isset($_GET['code'])) {

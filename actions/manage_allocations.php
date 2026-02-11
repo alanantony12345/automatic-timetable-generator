@@ -1,76 +1,94 @@
 <?php
+header('Content-Type: application/json');
+require __DIR__ . '/../config/db.php';
 session_start();
-require_once '../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+ob_start();
+
+try {
+    if (!isset($_SESSION['user_id']) || strcasecmp($_SESSION['role'], 'Admin') !== 0) {
+        throw new Exception("Unauthorized access.");
+    }
+
     $action = $_POST['action'] ?? '';
-    $response = ['success' => false, 'message' => ''];
 
     if ($action === 'add_allocation') {
-        // Prepare arrays
         $faculty_ids = $_POST['faculty_id'] ?? [];
         $subject_ids = $_POST['subject_id'] ?? [];
-        $section_ids = $_POST['section_id'] ?? [];
-        $hours_list = $_POST['weekly_hours'] ?? [];
-        $types = $_POST['subject_type'] ?? [];
 
-        // Normalize to array if single value
-        if (!is_array($faculty_ids))
-            $faculty_ids = [$faculty_ids];
-        if (!is_array($subject_ids))
-            $subject_ids = [$subject_ids];
+        // Handle potential arrays from multiple rows (we take the first one for now as per legacy behavior)
+        $type = $_POST['subject_type'];
+        if (is_array($type))
+            $type = $type[0];
+        if (empty($type))
+            $type = 'Theory';
 
-        // hours/type might come as array (legacy) or string (new). Handle both.
-        $hrs = is_array($hours_list) ? ($hours_list[0] ?? 4) : ($hours_list ?: 4);
-        $type = is_array($types) ? ($types[0] ?? 'Theory') : ($types ?: 'Theory');
+        $weekly_hours = $_POST['weekly_hours'];
+        if (is_array($weekly_hours))
+            $weekly_hours = $weekly_hours[0];
+        if (empty($weekly_hours))
+            $weekly_hours = 4;
 
-        $success_count = 0;
-        $error_count = 0;
+        $section_id = $_POST['section_id'] ?? null;
+        if ($section_id === '')
+            $section_id = null;
 
-        $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_id, section_id, weekly_hours, subject_type) VALUES (?, ?, ?, ?, ?)");
+        if (empty($faculty_ids) || empty($subject_ids)) {
+            throw new Exception("Please select at least one faculty and one subject.");
+        }
 
-        // Cartesian Product Loop: M Faculties x N Subjects
-        foreach ($faculty_ids as $f_id) {
-            foreach ($subject_ids as $s_id) {
-                if (empty($f_id) || empty($s_id))
-                    continue;
-                $sec_id = null; // Default null for bulk allocation
-
-                // Check if exists
-                $check_sql = "SELECT id FROM faculty_subjects WHERE faculty_id = $f_id AND subject_id = $s_id AND section_id IS NULL";
-                $check = $conn->query($check_sql);
-
-                if ($check && $check->num_rows > 0) {
-                    $error_count++;
-                } else {
-                    $stmt->bind_param("iiids", $f_id, $s_id, $sec_id, $hrs, $type);
-                    if ($stmt->execute()) {
-                        $success_count++;
-                    } else {
-                        $error_count++;
-                    }
+        foreach ($subject_ids as $sid) {
+            // "Only one subject can be allocated only one faculty"
+            // If section_id is present, we enforce 1:1 for that section.
+            // "Only one subject can be allocated only one faculty"
+            // Check if this subject is ALREADY assigned in this section
+            if ($section_id) {
+                $check = $conn->prepare("
+                        SELECT f.name as fac_name
+                        FROM faculty_subjects fs
+                        JOIN faculties f ON fs.faculty_id = f.id
+                        WHERE fs.subject_id = ? AND fs.section_id = ?
+                    ");
+                $check->bind_param("ii", $sid, $section_id);
+                $check->execute();
+                $res = $check->get_result();
+                if ($res->num_rows > 0) {
+                    $existing_fac = $res->fetch_assoc()['fac_name'];
+                    throw new Exception("Validation Error: This subject is already allocated to '$existing_fac'. You cannot allocate it to another faculty.");
                 }
+                $check->close();
+            } else {
+                // Check global
+                $check = $conn->prepare("SELECT f.name as fac_name FROM faculty_subjects fs JOIN faculties f ON fs.faculty_id = f.id WHERE fs.subject_id = ? AND fs.section_id IS NULL");
+                $check->bind_param("i", $sid);
+                $check->execute();
+                $res = $check->get_result();
+                if ($res->num_rows > 0) {
+                    $existing_fac = $res->fetch_assoc()['fac_name'];
+                    throw new Exception("Validation Error: This subject is already allocated globally to '$existing_fac'.");
+                }
+            }
+
+            foreach ($faculty_ids as $fid) {
+                // Insert new allocation
+                $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_id, section_id, type, weekly_hours) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE type=?, weekly_hours=?");
+                $stmt->bind_param("iiisisi", $fid, $sid, $section_id, $type, $weekly_hours, $type, $weekly_hours);
+                $stmt->execute();
+                $stmt->close();
+
+                // Break after first faculty to strictly enforce single faculty selection if multiple are sent
+                break;
             }
         }
 
-        if ($success_count > 0) {
-            $response['success'] = true;
-            $response['message'] = "$success_count allocations added successfully." . ($error_count > 0 ? " ($error_count skipped as duplicates)" : "");
-        } else {
-            $response['message'] = "No allocations added. " . ($error_count > 0 ? "All combinations already exist." : "Please select at least one faculty and one subject.");
-        }
-    } elseif ($action === 'remove_allocation') {
-        $faculty_id = $_POST['faculty_id'];
-        $subject_id = $_POST['subject_id'];
-
-        // If we want to be specific about section, we should pass it. For now, deleting general mapping
-        $conn->query("DELETE FROM faculty_subjects WHERE faculty_id = $faculty_id AND subject_id = $subject_id");
-        $response['success'] = true;
-        $response['message'] = 'Allocation removed.';
+        ob_clean();
+        echo json_encode(['success' => true, 'message' => 'Allocations saved successfully.']);
+    } else {
+        throw new Exception("Invalid action.");
     }
 
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
+} catch (Exception $e) {
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

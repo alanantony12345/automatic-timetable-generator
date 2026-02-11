@@ -31,6 +31,7 @@ $stats = [
 $subjects_list = [];
 $faculties_list = [];
 $sections_list = [];
+$all_sections_list = [];
 $rooms_list = [];
 $logs_list = [];
 
@@ -118,6 +119,13 @@ if ($conn) {
             while ($row = $res->fetch_assoc())
                 $sections_list[] = $row;
         }
+
+        // Use 'department_name' alias for compatibility with view logic
+        $all_sec_query = "SELECT s.*, d.name as department_name FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY s.section_name ASC";
+        if ($res = $conn->query($all_sec_query)) {
+            while ($row = $res->fetch_assoc())
+                $all_sections_list[] = $row;
+        }
     }
 
     // Audit Logs
@@ -162,6 +170,8 @@ if ($conn) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -207,6 +217,14 @@ if ($conn) {
             background-color: #4f46e5;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        const ALL_SUBJECTS = <?php echo json_encode($all_subjects_list); ?>;
+        const ALL_FACULTIES = <?php echo json_encode($all_faculties_list); ?>;
+        const ALL_ROOMS = <?php echo json_encode($rooms_list); ?>;
+        const ALL_SECTIONS = <?php echo json_encode($all_sections_list); ?>;
+    </script>
 </head>
 
 <body class="overflow-hidden">
@@ -247,6 +265,11 @@ if ($conn) {
                 <a href="#" onclick="showSection('class-mapping')" id="link-class-mapping"
                     class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
                     <i class="fas fa-sitemap"></i> Class & Section
+                </a>
+
+                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
+                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                    <i class="fas fa-building"></i> Departments
                 </a>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
@@ -291,6 +314,8 @@ if ($conn) {
                     class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
                     <i class="fas fa-sync"></i> Regenerate
                 </a>
+
+
 
                 <div class="relative group">
                     <button
@@ -364,6 +389,29 @@ if ($conn) {
 
             <!-- 1. DASHBOARD OVERVIEW -->
             <section id="overview-section" class="space-y-8">
+                <!-- Status Widget -->
+                <div
+                    class="bg-indigo-900 rounded-3xl p-8 text-white flex items-center justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1/3 bg-white/5 skew-x-12 transform translate-x-10">
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold mb-2">Timetable Status</h3>
+                        <p class="text-indigo-200 text-sm" id="status-desc">Current active timetable generation status.
+                        </p>
+                    </div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="text-right mr-4">
+                            <p class="text-xs font-bold text-indigo-300 uppercase">Last Updated</p>
+                            <p class="font-bold" id="status-last-updated">-</p>
+                        </div>
+                        <div
+                            class="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/10 flex flex-col items-center">
+                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Status</span>
+                            <span class="text-lg font-black" id="status-badge">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-slate-100">
                         <div
@@ -478,13 +526,17 @@ if ($conn) {
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
                                 <select name="department_id" required
-                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
                                     <option value="">Select Dept</option>
-                                    <?php foreach ($departments_list as $dept): ?>
-                                        <option value="<?php echo $dept['id']; ?>">
-                                            <?php echo htmlspecialchars($dept['name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if (empty($departments_list)): ?>
+                                        <option value="" disabled>No departments found</option>
+                                    <?php else: ?>
+                                        <?php foreach ($departments_list as $dept): ?>
+                                            <option value="<?php echo $dept['id']; ?>">
+                                                <?php echo htmlspecialchars($dept['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                             </div>
                             <div>
@@ -504,7 +556,6 @@ if ($conn) {
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Credits</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Batch/Year</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Department</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions
                                     </th>
                                 </tr>
@@ -523,13 +574,25 @@ if ($conn) {
                                                 <?php echo htmlspecialchars($sub['credits'] ?? 'N/A'); ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500">
-                                                <?php echo htmlspecialchars($sub['batch_year'] ?? 'All'); ?>
+                                                <?php
+                                                $details = [];
+                                                if (!empty($sub['batch_year']))
+                                                    $details[] = $sub['batch_year'];
+                                                if (!empty($sub['academic_year']))
+                                                    $details[] = "Yr " . $sub['academic_year'];
+                                                if (!empty($sub['semester']))
+                                                    $details[] = "Sem " . $sub['semester'];
+                                                if (!empty($sub['section_id']))
+                                                    $details[] = "Sec ID:" . $sub['section_id']; // Could map to name if joined
+                                                echo implode(' • ', $details);
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4 text-sm font-bold text-slate-700">
                                                 <?php echo htmlspecialchars($sub['department_name'] ?? 'N/A'); ?>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
+                                                <button onclick='openEditSubjectModal(<?php echo json_encode($sub); ?>)'
+                                                    class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i
                                                         class="fas fa-edit"></i></button>
                                                 <button onclick="deleteSubject(<?php echo $sub['id']; ?>, this)"
                                                     class="text-slate-400 hover:text-red-500 mx-2"><i
@@ -783,21 +846,379 @@ if ($conn) {
 
             <section id="generate-section"
                 class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
+                <div class="bg-white p-12 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-2xl w-full">
+                    <div
+                        class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-600 text-4xl mx-auto shadow-sm">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800 mb-2">Timetable Generator</h3>
+                    <p class="text-slate-500 font-medium text-sm mb-10 max-w-md mx-auto">
+                        Ready to generate the timetable. The system will use current faculty allocations, room
+                        capacities, and subject constraints.
+                    </p>
+
+                    <div class="flex flex-col gap-4 max-w-xs mx-auto">
+                        <button onclick="startGeneration()" id="btn-generate"
+                            class="w-full px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                            <i class="fas fa-play"></i> Start Generation
+                        </button>
+
+                        <div id="generation-results" class="hidden space-y-3 animate-fade-in">
+                            <div
+                                class="p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-100">
+                                <i class="fas fa-check-circle mr-2"></i> Generation Successful!
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="publishTimetable()" id="btn-publish"
+                                    class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-100">
+                                    Publish
+                                </button>
+                                <button onclick="showSection('overview')"
+                                    class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">
+                                    Later
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="console-output"
+                        class="hidden mt-8 text-left bg-slate-900 rounded-xl p-4 font-mono text-xs text-slate-300 h-32 overflow-y-auto">
+                        <div
+                            class="flex items-center gap-2 mb-2 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+                            <i class="fas fa-terminal"></i> System Log
+                        </div>
+                        <div id="console-lines" class="space-y-1"></div>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <form action="actions/generate_timetable.php" method="POST">
-                    <button type="submit"
-                        class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                        Generation</button>
-                </form>
             </section>
 
             <!-- OPERATIONS Placeholder -->
+            <!-- View Timetable Department Wise -->
+            <section id="view-dept-wise-section" class="hidden space-y-8">
+                <!-- Wrapper -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800">View Timetable</h3>
+                            <p class="text-slate-400 text-sm">Select constraints to view the generated schedule.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="downloadTimetablePDF()"
+                                class="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition shadow-sm border border-red-100">
+                                <i class="fas fa-file-pdf mr-2"></i> Export PDF
+                            </button>
+                            <select id="view-version-id"
+                                class="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Select Version...</option>
+                                <!-- Populated by JS -->
+                            </select>
+                            <button onclick="loadViewVersions()"
+                                class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition"><i
+                                    class="fas fa-sync"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
+                            <select id="view-dept-id"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
+                                <option value="">Select Dept</option>
+                                <?php foreach ($departments_list as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>">
+                                        <?php echo htmlspecialchars($dept['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section</label>
+                            <select id="view-section-id"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
+                                <option value="">Select Section</option>
+                                <option value="">Select Department First</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="loadTimetableGrid()"
+                                class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                                <i class="fas fa-search mr-2"></i> Load Timetable
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grid Container -->
+                    <div id="view-grid-container" class="overflow-x-auto rounded-xl border border-slate-200 hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold w-32 bg-slate-50 sticky left-0 z-10">Day / Period
+                                    </th>
+                                    <th class="px-6 py-4 text-center">1<br><span
+                                            class="text-[10px] opacity-70">9:30-10:20</span></th>
+                                    <th class="px-6 py-4 text-center">2<br><span
+                                            class="text-[10px] opacity-70">10:20-11:10</span></th>
+                                    <th class="px-6 py-4 text-center">3<br><span
+                                            class="text-[10px] opacity-70">11:10-12:00</span></th>
+                                    <th class="px-6 py-4 text-center">4<br><span
+                                            class="text-[10px] opacity-70">12:00-12:50</span></th>
+                                    <th class="px-6 py-4 text-center bg-slate-100/50">LUNCH</th>
+                                    <th class="px-6 py-4 text-center">5<br><span
+                                            class="text-[10px] opacity-70">01:30-02:20</span></th>
+                                    <th class="px-6 py-4 text-center">6<br><span
+                                            class="text-[10px] opacity-70">02:20-03:10</span></th>
+                                    <th class="px-6 py-4 text-center">7<br><span
+                                            class="text-[10px] opacity-70">03:10-04:00</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="view-grid-body" class="divide-y divide-slate-100">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="view-empty-state" class="py-20 text-center">
+                        <div
+                            class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
+                            <i class="fas fa-table"></i>
+                        </div>
+                        <p class="text-slate-400 font-medium">Select constraints and load to view schedule.</p>
+                    </div>
+
+                    <!-- Allocations Summary -->
+                    <div id="view-allocations-wrapper"
+                        class="hidden mt-8 border-t border-slate-100 pt-8 animate-fade-in">
+                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-list-ul text-indigo-500"></i> Course Allocations
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="view-allocations-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View Timetable Faculty Wise -->
+            <section id="view-fac-wise-section" class="hidden space-y-8">
+                <!-- Wrapper -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800">View Faculty Timetable</h3>
+                            <p class="text-slate-400 text-sm">View allocations and schedule for a specific faculty
+                                member.</p>
+                        </div>
+                        <!-- Version Select (Reused/Synced) -->
+                        <div class="flex gap-2">
+                            <select id="view-fac-version-id"
+                                class="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Select Version...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Faculty Member</label>
+                            <select id="view-faculty-id"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
+                                <option value="">Select Faculty</option>
+                                <?php foreach ($all_faculties_list as $f): ?>
+                                    <option value="<?php echo $f['id']; ?>"><?php echo htmlspecialchars($f['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="loadFacultyTimetable()"
+                                class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                                <i class="fas fa-search mr-2"></i> Load Schedule
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grid Container -->
+                    <div id="view-fac-grid-container" class="overflow-x-auto rounded-xl border border-slate-200 hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold w-32 bg-slate-50 sticky left-0 z-10">Day / Period
+                                    </th>
+                                    <th class="px-6 py-4 text-center">1</th>
+                                    <th class="px-6 py-4 text-center">2</th>
+                                    <th class="px-6 py-4 text-center">3</th>
+                                    <th class="px-6 py-4 text-center">4</th>
+                                    <th class="px-6 py-4 text-center bg-slate-100/50">LUNCH</th>
+                                    <th class="px-6 py-4 text-center">5</th>
+                                    <th class="px-6 py-4 text-center">6</th>
+                                    <th class="px-6 py-4 text-center">7</th>
+                                </tr>
+                            </thead>
+                            <tbody id="view-fac-grid-body" class="divide-y divide-slate-100">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="view-fac-empty-state" class="py-20 text-center">
+                        <div
+                            class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <p class="text-slate-400 font-medium">Select a faculty to view their schedule.</p>
+                    </div>
+
+                    <!-- Allocations Summary -->
+                    <div id="view-fac-allocations-wrapper"
+                        class="hidden mt-8 border-t border-slate-100 pt-8 animate-fade-in">
+                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-list-ul text-indigo-500"></i> Allocated Subjects
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                            id="view-fac-allocations-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN PROFILE SECTION -->
+            <section id="profile-section" class="hidden space-y-8 animate-fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Profile Card -->
+                    <div
+                        class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col items-center text-center relative overflow-hidden group">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition duration-500">
+                        </div>
+                        <div
+                            class="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-indigo-500 to-purple-500 mb-6 relative z-10 shadow-lg shadow-indigo-200">
+                            <div class="w-full h-full bg-white rounded-full p-1">
+                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['user_name']); ?>&background=random&size=128"
+                                    class="w-full h-full rounded-full object-cover">
+                            </div>
+                            <button
+                                class="absolute bottom-0 right-0 bg-white text-indigo-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md border border-indigo-100 hover:bg-indigo-50 transition">
+                                <i class="fas fa-camera text-xs"></i>
+                            </button>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800 relative z-10 mb-1">
+                            <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                        </h3>
+                        <span
+                            class="px-4 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-6 relative z-10">Administrator</span>
+
+                        <div class="w-full grid grid-cols-2 gap-4 relative z-10">
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">Role Type</p>
+                                <p class="font-bold text-slate-700">Super Admin</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded-2xl">
+                                <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">Member Since</p>
+                                <p class="font-bold text-slate-700">2024</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Forms -->
+                    <div class="md:col-span-2 space-y-8">
+                        <!-- Personal Details -->
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-lg text-slate-800">Personal Details</h4>
+                                    <p class="text-xs text-slate-400">Update your public profile information.</p>
+                                </div>
+                            </div>
+
+                            <form id="profile-form" onsubmit="event.preventDefault(); updateProfile(this);">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Full
+                                            Name</label>
+                                        <input type="text" name="name"
+                                            value="<?php echo htmlspecialchars($_SESSION['user_name']); ?>"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Email
+                                            Address</label>
+                                        <input type="email" name="email"
+                                            value="<?php echo htmlspecialchars($_SESSION['user_email'] ?? 'admin@college.edu'); ?>"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                        class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 transform active:scale-95">
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Security -->
+                        <div
+                            class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-lg text-slate-800">Security & Password</h4>
+                                    <p class="text-xs text-slate-400">Manage your account security.</p>
+                                </div>
+                            </div>
+
+                            <form id="password-form" onsubmit="event.preventDefault(); changePassword(this);">
+                                <div class="space-y-4 mb-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Current
+                                            Password</label>
+                                        <div class="relative">
+                                            <input type="password" name="current_password"
+                                                placeholder="Enter current password"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                            <i class="fas fa-lock absolute right-4 top-3.5 text-slate-300"></i>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">New
+                                                Password</label>
+                                            <input type="password" name="new_password" placeholder="Min 8 chars"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Confirm
+                                                Password</label>
+                                            <input type="password" name="confirm_password"
+                                                placeholder="Repeat new password"
+                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition text-sm font-bold text-slate-700">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                        class="px-8 py-3 bg-white border-2 border-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-50 hover:text-orange-600 hover:border-orange-100 transition transform active:scale-95">
+                                        Update Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <?php
             $sections_path = __DIR__ . '/includes/admin_sections.html';
             if (file_exists($sections_path)) {
@@ -805,19 +1226,7 @@ if ($conn) {
             }
             ?>
 
-            <section id="generate-section"
-                class="hidden h-full flex flex-col items-center justify-center text-center py-20">
-                <div
-                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200 text-4xl">
-                    <i class="fas fa-magic"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-400">Timetable Generator</h3>
-                <p class="text-slate-400 text-sm mt-2 max-w-xs mb-6">Ready to generate the timetable based on current
-                    constraints.</p>
-                <button
-                    class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Start
-                    Generation</button>
-            </section>
+
         </div>
 
         <!-- Modals -->
@@ -1019,16 +1428,154 @@ if ($conn) {
             </div>
         </div>
 
+        <!-- Add Department Modal -->
+        <div id="dept-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl relative">
+                <button onclick="document.getElementById('dept-modal').classList.add('hidden')"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold text-slate-800 mb-6">New Department</h3>
+                <form id="add-dept-form" onsubmit="event.preventDefault(); addDept();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label>
+                        <input type="text" name="name" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Code</label>
+                        <input type="text" name="code" placeholder="e.g. CS, ME"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                    </div>
+                    <div class="pt-4">
+                        <button type="submit"
+                            class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save
+                            Department</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </main>
+
+    <!-- Edit Subject Modal -->
+    <div id="edit-subject-modal"
+        class="hidden fixed inset-0 bg-black/50 z-[80] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-3xl w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="document.getElementById('edit-subject-modal').classList.add('hidden')"
+                class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-bold text-slate-800 mb-1">Edit Subject</h3>
+            <p class="text-slate-400 text-sm mb-6">Modify subject details.</p>
+
+            <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();" class="space-y-6">
+                <input type="hidden" name="id" id="edit_subject_id">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
+                        <input type="text" name="name" id="edit_subject_name" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
+                        <input type="text" name="code" id="edit_subject_code" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
+                        <select name="department_id" id="edit_subject_dept" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
+                            <?php
+                            $dept_query = "SELECT * FROM departments ORDER BY name ASC";
+                            $dept_result = $conn->query($dept_query);
+                            if ($dept_result->num_rows > 0) {
+                                while ($d = $dept_result->fetch_assoc()) {
+                                    echo "<option value='" . $d['id'] . "'>" . $d['name'] . "</option>";
+                                }
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
+                        <input type="number" name="credits" id="edit_subject_credits" value="3" min="1" max="10"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <h4 class="text-sm font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-layer-group"></i> Batch & Class Details (Optional)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Batch Year</label>
+                            <input type="text" name="batch_year" id="edit_subject_batch" placeholder="e.g. 2024-2028"
+                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Academic
+                                Year</label>
+                            <select name="academic_year" id="edit_subject_year"
+                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
+                                <option value="">-- Select --</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Semester</label>
+                            <select name="semester" id="edit_subject_sem"
+                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
+                                <option value="">-- Select --</option>
+                                <option value="1">Odd (1,3,5,7)</option>
+                                <option value="2">Even (2,4,6,8)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Section</label>
+                            <select name="section_id" id="edit_subject_sec"
+                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
+                                <option value="">-- General / Common --</option>
+                                <?php
+                                $sec_q = "SELECT s.id, s.section_name, d.code FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY d.code, s.section_name";
+                                $sec_r = $conn->query($sec_q);
+                                if ($sec_r->num_rows > 0) {
+                                    while ($sec = $sec_r->fetch_assoc()) {
+                                        echo "<option value='" . $sec['id'] . "'>" . $sec['code'] . " - " . $sec['section_name'] . "</option>";
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-update-subject"
+                    class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
 
     <script>
         function showSection(sectionId) {
+            // Update URL hash without jumping if possible
+            window.location.hash = sectionId;
+
             // 1. Hide all sections
             const sections = document.querySelectorAll('section');
             sections.forEach(sec => {
                 if (sec.id && sec.id.endsWith('-section')) {
                     sec.classList.add('hidden');
                 }
+                // Custom check if manual sections array was used previously, but querySelectorAll is safer
             });
 
             // 2. Remove active class from all links
@@ -1062,7 +1609,12 @@ if ($conn) {
                 'regenerate': 'Regenerate Timetable',
                 'profile': 'Admin Profile',
                 'password': 'Change Password',
-                'user-manage': 'User Management'
+                'user-manage': 'User Management',
+                'password': 'Change Password',
+                'user-manage': 'User Management',
+                'view-dept-wise': 'View Timetable (Department)',
+                'view-fac-wise': 'View Timetable (Faculty)',
+                'reports': 'Reports & Analytics'
             };
             const titleEl = document.getElementById('section-title');
             if (titleEl) {
@@ -1147,6 +1699,254 @@ if ($conn) {
             container.scrollTop = container.scrollHeight;
         }
 
+        function addDept() {
+            const form = document.getElementById('add-dept-form');
+            const btn = form.querySelector('button[type="submit"]');
+            const originalBtn = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
+            const data = new FormData(form);
+            fetch('actions/add_dept.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
+
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        const tbody = document.getElementById('dept-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No departments found')) tbody.innerHTML = '';
+
+                        const d = res.dept;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 font-bold text-slate-800">${d.name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${d.code}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="deleteDept(${d.id}, this)" class="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('dept-modal').classList.add('hidden');
+
+                        // Optionally reload to update dropdowns elsewhere if needed, 
+                        // but for now just update the table.
+                    } else showToast(res.message, 'error');
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtn;
+                    showToast('Error adding department', 'error');
+                });
+        }
+
+        function deleteDept(id, btn) {
+            if (!confirm('Delete this department? This might affect subjects and faculty linked to it.')) return;
+
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+
+            fetch('actions/delete_dept.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('dept-table-body');
+                            if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No departments found.</td></tr>';
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
+                });
+        }
+
+        function addRoom() {
+            const form = document.getElementById('add-room-form');
+            const data = new FormData(form);
+
+            fetch('actions/add_room.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(res.message);
+                        const container = document.getElementById('rooms-container');
+                        if (container.querySelector('p')?.innerText.includes('No rooms found')) {
+                            container.innerHTML = '';
+                        }
+                        const room = res.room;
+                        const card = document.createElement('div');
+                        card.className = 'p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group overflow-hidden animate-fade-in';
+                        card.innerHTML = `
+                            <button onclick="deleteRoom(${room.id}, this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"><i class="fas fa-trash text-xs"></i></button>
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                                    <i class="fas fa-laptop-code text-sm"></i>
+                                </div>
+                                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px] font-bold uppercase">${room.type}</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">${room.name}</h4>
+                            <div class="mt-4 flex flex-wrap gap-1">
+                                <span class="px-2 py-0.5 border border-slate-200 rounded text-[8px] text-slate-500">${room.equipment || 'Standard'}</span>
+                            </div>
+                            <div class="mt-4 flex items-end justify-between">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Capacity</p>
+                                    <p class="text-xl font-extrabold text-slate-800">${room.capacity}</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500">
+                                    <span class="text-[10px] font-bold">OK</span>
+                                </div>
+                            </div>
+                        `;
+                        container.insertBefore(card, container.firstChild);
+                        form.reset();
+                        document.getElementById('room-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteRoom(id, btn) {
+            if (!confirm('Are you sure you want to delete this room?')) return;
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_room.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        btn.closest('.group').remove();
+                        const container = document.getElementById('rooms-container');
+                        if (container.children.length === 0) {
+                            container.innerHTML = '<p class="text-slate-400 text-sm">No rooms found.</p>';
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function addSection() {
+            const form = document.getElementById('add-section-form');
+            const data = new FormData(form);
+
+            fetch('actions/add_section.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(res.message);
+                        const tbody = document.getElementById('sections-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No sections found')) {
+                            tbody.innerHTML = '';
+                        }
+                        const sec = res.section;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.department_id}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">Yr ${sec.year}, Sem ${sec.semester}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.section_name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${sec.student_strength}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteSection(${sec.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('section-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteSection(id, btn) {
+            if (!confirm('Are you sure you want to delete this section?')) return;
+
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_section.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('sections-table-body');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No sections found.</td></tr>';
+                            }
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
+                });
+        }
+
+        function toggleAddSubjectForm() {
+            const form = document.getElementById('add-subject-form');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                form.classList.add('animate-fade-in');
+                form.querySelector('input').focus();
+            } else {
+                form.classList.add('animate-fade-out');
+                setTimeout(() => {
+                    form.classList.add('hidden');
+                    form.classList.remove('animate-fade-out');
+                }, 400);
+            }
+        }
+
+        // Toast System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'info') icon = 'fa-info-circle';
+
+            toast.innerHTML = `
+                <i class="fas ${icon} ${type === 'success' ? 'text-emerald-500' : type === 'error' ? 'text-red-500' : 'text-blue-500'}"></i>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-slate-800">${message}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('animate-fade-out');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
         function addSubject() {
             const form = document.getElementById('add-subject-form');
             const data = new FormData(form);
@@ -1174,19 +1974,40 @@ if ($conn) {
 
                         const row = document.createElement('tr');
                         row.className = 'hover:bg-slate-50 transition animate-fade-in';
+
+                        let details = [];
+                        if (sub.batch_year) details.push(sub.batch_year);
+                        if (sub.academic_year) details.push("Yr " + sub.academic_year);
+                        if (sub.semester) details.push("Sem " + sub.semester);
+                        if (sub.section_id) details.push("Sec ID:" + sub.section_id);
+
                         row.innerHTML = `
-                        <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
-                        <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
-                        <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
-                        <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
-                        <td class="px-6 py-4 text-sm font-bold text-slate-700">${deptName}</td>
-                        <td class="px-6 py-4 text-right">
-                            <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
+                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">${sub.batch_year}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
                         tbody.insertBefore(row, tbody.firstChild);
                         form.reset();
+
+                        // NEW: Dynamically update Allocation Dropdowns
+                        // 1. Update existing selects in the modal
+                        const allocSelects = document.querySelectorAll('select[name="subject_id[]"]');
+                        allocSelects.forEach(sel => {
+                            const opt = document.createElement('option');
+                            opt.value = sub.id;
+                            opt.innerText = `${sub.name} (${sub.code})`;
+                            sel.appendChild(opt);
+                        });
+
+                        // 2. Update global ALL_SUBJECTS array if it exists (for robustness)
+                        if (typeof ALL_SUBJECTS !== 'undefined') {
+                            ALL_SUBJECTS.push(sub);
+                        }
                     } else {
                         alert(res.message);
                         if (res.message && res.message.includes('Unauthorized')) {
@@ -1196,7 +2017,81 @@ if ($conn) {
                 })
                 .catch(err => {
                     console.error(err);
-                    alert('Error adding subject. Check console for details.');
+                    showToast('Error adding subject. Check console.', 'error');
+                });
+        }
+
+        function addFaculty() {
+            const form = document.getElementById('add-faculty-form');
+            const data = new FormData(form);
+
+            fetch('actions/add_faculty.php', { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(res.message);
+                        const tbody = document.getElementById('faculty-table-body');
+                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No faculties found')) {
+                            tbody.innerHTML = '';
+                        }
+                        const fac = res.faculty;
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                        row.innerHTML = `
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                                        ${fac.name.substring(0, 2)}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">${fac.name}</p>
+                                        <p class="text-[10px] text-slate-400">${fac.email}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${data.get('max_hours_week') || 20}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-slate-400 hover:text-indigo-600 mx-2" title="Manage Constraints"><i class="fas fa-sliders-h"></i></button>
+                                <button onclick="deleteFaculty(${fac.id}, this)" class="text-slate-400 hover:text-red-500 mx-2" title="Delete Faculty"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.insertBefore(row, tbody.firstChild);
+                        form.reset();
+                        document.getElementById('faculty-modal').classList.add('hidden');
+                    } else {
+                        alert(res.message);
+                    }
+                });
+        }
+
+        function deleteFaculty(id, btn) {
+            if (!confirm('Are you sure you want to delete this faculty member?')) return;
+
+            const row = btn.closest('tr');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('actions/delete_faculty.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('faculty-table-body');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No faculties found.</td></tr>';
+                            }
+                        }, 400);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast(res.message, 'error');
+                    }
                 });
         }
 
@@ -1234,7 +2129,7 @@ if ($conn) {
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', () => { showSection('overview'); });
+
     </script>
 </body>
 

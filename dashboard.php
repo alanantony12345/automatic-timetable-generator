@@ -1,29 +1,113 @@
 <?php
-<<<<<<< HEAD
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/db.php';
+require __DIR__ . '/config/db.php';
 
-=======
-session_start();
->>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
-<<<<<<< HEAD
 
 // Redirect if not a student/other role
-if (isset($_SESSION['role']) && $_SESSION['role'] === 'Admin') {
+if (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'Admin') === 0) {
     header("Location: admin_dashboard.php");
     exit();
-} elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'Faculty') {
+} elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'Faculty') === 0) {
     header("Location: faculty_dashboard.php");
     exit();
 }
 
 require 'includes/header.php';
+
+// --- Fetch Student Data & Timetable ---
+$student_id = $_SESSION['user_id'];
+$timetable_data = [];
+$unique_subjects = [];
+$days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; // Default
+$periods_count = 7; // Default
+$section_details = null;
+
+// 1. Get Student Details (Department, Year, Semester, Section)
+$stmt = $conn->prepare("SELECT department, year, semester, section FROM users WHERE id = ?");
+$stmt->bind_param("i", $student_id);
+$stmt->execute();
+$res = $stmt->get_result();
+if ($student = $res->fetch_assoc()) {
+    $dept_name = $student['department'];
+    $sem = $student['semester'];
+    $sec_name = $student['section'];
+    $year = $student['year'];
+
+    // 2. Resolve Section ID
+    // First get Department ID
+    $dept_id = null;
+    $d_stmt = $conn->prepare("SELECT id FROM departments WHERE name = ? OR code = ? LIMIT 1");
+    $d_stmt->bind_param("ss", $dept_name, $dept_name);
+    $d_stmt->execute();
+    if ($d_row = $d_stmt->get_result()->fetch_assoc()) {
+        $dept_id = $d_row['id'];
+    }
+    $d_stmt->close();
+
+    if ($dept_id) {
+        // Get Section ID
+        $s_stmt = $conn->prepare("SELECT id FROM sections WHERE department_id = ? AND semester = ? AND section_name = ? LIMIT 1");
+        $s_stmt->bind_param("iis", $dept_id, $sem, $sec_name);
+        $s_stmt->execute();
+        if ($s_row = $s_stmt->get_result()->fetch_assoc()) {
+            $section_id = $s_row['id'];
+            $section_details = "$dept_name - Sem $sem - Sec $sec_name";
+
+            // 3. Fetch Academic Settings (for structure)
+            $set_res = $conn->query("SELECT * FROM academic_settings");
+            if ($set_res) {
+                while ($row = $set_res->fetch_assoc()) {
+                    if ($row['key_name'] == 'working_days')
+                        $days_list = json_decode($row['value'], true);
+                    if ($row['key_name'] == 'periods_per_day')
+                        $periods_count = (int) $row['value'];
+                }
+            }
+
+            // 4. Fetch Active Timetable Entries ONLY (Strict Lock)
+            $v_sql = "SELECT id, version_name FROM timetable_versions WHERE status = 'Active' ORDER BY created_at DESC LIMIT 1";
+            $v_res = $conn->query($v_sql);
+            $version_id = null;
+            $version_name = "";
+
+            if ($v_res && $v_res->num_rows > 0) {
+                $row = $v_res->fetch_assoc();
+                $version_id = $row['id'];
+                $version_name = $row['version_name'];
+            }
+            // NO FALLBACK to drafts. If no active version, student sees nothing.
+
+            if ($version_id) {
+                // Fetch Entries
+                $e_sql = "SELECT te.*, s.name as subject_name, s.code as subject_code, f.name as faculty_name, r.room_number 
+                          FROM timetable_entries te
+                          LEFT JOIN subjects s ON te.subject_id = s.id
+                          LEFT JOIN faculties f ON te.faculty_id = f.id
+                          LEFT JOIN classrooms r ON te.room_id = r.id
+                          WHERE te.version_id = ? AND te.section_id = ?";
+                $e_stmt = $conn->prepare($e_sql);
+                $e_stmt->bind_param("ii", $version_id, $section_id);
+                $e_stmt->execute();
+                $e_res = $e_stmt->get_result();
+                while ($row = $e_res->fetch_assoc()) {
+                    $timetable_data[$row['day']][$row['period']] = $row;
+                    if (!empty($row['subject_name'])) {
+                        $unique_subjects[$row['subject_id']] = $row['subject_name'];
+                    }
+                }
+                $e_stmt->close();
+            }
+        }
+        $s_stmt->close();
+    }
+}
+$stmt->close();
 ?>
 
 <style>
@@ -161,10 +245,43 @@ require 'includes/header.php';
             </nav>
 
             <div class="mt-auto space-y-4">
+                <?php
+                // Logic to find next upcoming class
+                $next_class = null;
+                $next_class_time = "";
+                $current_ts = time();
+                $today_day = date('l');
+
+                if (isset($timetable_data[$today_day])) {
+                    $start_t_base = strtotime("09:00 AM");
+                    for ($p = 1; $p <= $periods_count; $p++) {
+                        $class_start_ts = strtotime(date("Y-m-d") . " " . date("H:i:s", $start_t_base));
+                        // If class starts in the future (buffer 10 mins?) or just strictly future
+                        if ($class_start_ts > $current_ts) {
+                            if (isset($timetable_data[$today_day][$p])) {
+                                $next_class = $timetable_data[$today_day][$p];
+                                $next_class_time = date("h:i A", $start_t_base);
+                                break;
+                            }
+                        }
+                        $start_t_base += 3600;
+                    }
+                }
+                ?>
                 <div class="bg-indigo-50 rounded-2xl p-4">
                     <p class="text-[10px] font-bold text-indigo-400 uppercase mb-2">Upcoming Class</p>
-                    <h5 class="text-sm font-bold text-gray-800">Advanced Algorithms</h5>
-                    <p class="text-xs text-gray-500">Hall 402 • 11:30 AM</p>
+                    <?php if ($next_class): ?>
+                        <h5 class="text-sm font-bold text-gray-800">
+                            <?php echo htmlspecialchars($next_class['subject_name']); ?>
+                        </h5>
+                        <p class="text-xs text-gray-500">
+                            <?php echo htmlspecialchars($next_class['room_number'] ?? 'TBA'); ?> •
+                            <?php echo $next_class_time; ?>
+                        </p>
+                    <?php else: ?>
+                        <h5 class="text-sm font-bold text-gray-800">No more classes</h5>
+                        <p class="text-xs text-gray-500">You are free for the day!</p>
+                    <?php endif; ?>
                 </div>
                 <a href="logout.php"
                     class="flex items-center gap-3 px-5 py-3 rounded-xl text-red-500 hover:bg-red-50 transition font-bold">
@@ -180,15 +297,21 @@ require 'includes/header.php';
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
             <div>
                 <h1 class="text-4xl font-black text-gray-900 mb-2">
-                    Welcome back, <span
-                        class="gradient-text"><?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!</span> 👋
+                    Welcome back, <span class="gradient-text">
+                        <?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!
+                    </span> 👋
                 </h1>
-                <p class="text-gray-500 font-medium">Semester 4 • Academic Year 2024-25</p>
+                <p class="text-gray-500 font-medium">
+                    <?php echo $section_details ? htmlspecialchars($section_details) : "Semester $sem • Year $year"; ?>
+                    • Academic Year <?php echo date('Y') . '-' . (date('Y') + 1); ?>
+                </p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-3">
                     <i class="far fa-calendar text-indigo-500"></i>
-                    <span class="text-sm font-bold text-gray-700"><?php echo date('D, M d Y'); ?></span>
+                    <span class="text-sm font-bold text-gray-700">
+                        <?php echo date('D, M d Y'); ?>
+                    </span>
                 </div>
                 <button
                     class="w-12 h-12 glass-card rounded-xl flex items-center justify-center text-gray-600 hover:text-indigo-600 transition">
@@ -197,45 +320,10 @@ require 'includes/header.php';
             </div>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-indigo-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                    <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">+2.4%</span>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">88.5%</h3>
-                <p class="text-sm text-gray-500 font-medium">Overall Attendance</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-purple-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">24h</h3>
-                <p class="text-sm text-gray-500 font-medium">Weekly Lectures</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-pink-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center">
-                        <i class="fas fa-star"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">8.42</h3>
-                <p class="text-sm text-gray-500 font-medium">Current CGPA</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-blue-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">04</h3>
-                <p class="text-sm text-gray-500 font-medium">Pending Tasks</p>
-            </div>
+        <!-- Stats Grid (Removed as per user request to focus on timetable) -->
+        <div class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-800">My Timetable</h2>
+            <p class="text-gray-500">View your active class schedule below.</p>
         </div>
 
         <!-- Timetable & Content -->
@@ -259,73 +347,85 @@ require 'includes/header.php';
                     </div>
 
                     <div class="overflow-x-auto">
-                        <div class="timetable-grid" style="min-width: 800px;">
+                        <div class="timetable-grid"
+                            style="min-width: 800px; grid-template-columns: 100px repeat(<?php echo count($days_list); ?>, 1fr);">
                             <!-- Header -->
                             <div class="timetable-header">TIME</div>
-                            <div class="timetable-header">MON</div>
-                            <div class="timetable-header">TUE</div>
-                            <div class="timetable-header">WED</div>
-                            <div class="timetable-header">THU</div>
-                            <div class="timetable-header">FRI</div>
+                            <?php foreach ($days_list as $day): ?>
+                                <div class="timetable-header">
+                                    <?php echo substr($day, 0, 3); ?>
+                                </div>
+                            <?php endforeach; ?>
 
-                            <!-- Row 1: 09:00 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Start</span>
-                                <span class="text-sm font-black text-gray-700">09:00 AM</span>
-                            </div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-indigo-50 border-l-4 border-indigo-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-indigo-700">DS-401</h6>
-                                    <p class="text-[10px] text-gray-600">Data Science</p>
+                            <!-- Rows -->
+                            <?php
+                            $start_time = strtotime("09:00 AM");
+                            for ($p = 1; $p <= $periods_count; $p++):
+                                $time_str = date("h:i A", $start_time);
+                                ?>
+                                <!-- Period Time Column -->
+                                <div
+                                    class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
+                                    <span class="text-xs font-bold text-gray-400 uppercase">Period
+                                        <?php echo $p; ?>
+                                    </span>
+                                    <span class="text-sm font-black text-gray-700">
+                                        <?php echo $time_str; ?>
+                                    </span>
                                 </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-purple-700">CO-202</h6>
-                                    <p class="text-[10px] text-gray-600">Computer Org</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-indigo-50 border-l-4 border-indigo-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-indigo-700">DS-401</h6>
-                                    <p class="text-[10px] text-gray-600">Data Science</p>
-                                </div>
-                            </div>
 
-                            <!-- Row 2: 10:30 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Break</span>
-                                <span class="text-sm font-black text-gray-700">10:30 AM</span>
-                            </div>
-                            <div
-                                class="timetable-cell bg-gray-50/50 flex items-center justify-center col-span-5 italic text-gray-400 text-sm font-medium">
-                                Short Recess </div>
+                                <!-- Days Columns -->
+                                <?php foreach ($days_list as $day):
+                                    $cell_data = $timetable_data[$day][$p] ?? null;
+                                    ?>
+                                    <div class="timetable-cell">
+                                        <?php if ($cell_data): ?>
+                                            <?php
+                                            // Color coding based on type
+                                            $bg_color = 'bg-indigo-50';
+                                            $border_color = 'border-indigo-500';
+                                            $text_color = 'text-indigo-700';
+                                            if ($cell_data['type'] === 'Lab') {
+                                                $bg_color = 'bg-purple-50';
+                                                $border_color = 'border-purple-500';
+                                                $text_color = 'text-purple-700';
+                                            }
+                                            ?>
+                                            <div
+                                                class="p-3 <?php echo $bg_color; ?> border-l-4 <?php echo $border_color; ?> rounded-lg h-full transition hover:shadow-md cursor-pointer">
+                                                <h6 class="text-xs font-bold <?php echo $text_color; ?>">
+                                                    <?php echo htmlspecialchars($cell_data['subject_code']); ?>
+                                                </h6>
+                                                <p class="text-[10px] text-gray-600 font-medium leading-tight my-1">
+                                                    <?php echo htmlspecialchars($cell_data['subject_name']); ?>
+                                                </p>
 
-                            <!-- Row 3: 11:00 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Slot</span>
-                                <span class="text-sm font-black text-gray-700">11:00 AM</span>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-pink-50 border-l-4 border-pink-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-pink-700">MA-305</h6>
-                                    <p class="text-[10px] text-gray-600">Math III</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-blue-700">CS-405</h6>
-                                    <p class="text-[10px] text-gray-600">Algorithms</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
+                                                <div class="flex items-center gap-1 mt-2 text-[10px] text-gray-500">
+                                                    <i class="fas fa-chalkboard-teacher"></i>
+                                                    <span>
+                                                        <?php echo htmlspecialchars(explode(' ', $cell_data['faculty_name'])[0]); ?>
+                                                    </span>
+                                                </div>
+                                                <div class="flex items-center gap-1 text-[9px] text-gray-400 mt-0.5">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <span>
+                                                        <?php echo htmlspecialchars($cell_data['room_number'] ?? 'TBA'); ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div
+                                                class="h-full w-full flex items-center justify-center text-gray-300 text-xs italic">
+                                                -
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <?php
+                                $start_time += 3600; // Increment 1 hour
+                            endfor;
+                            ?>
                         </div>
                     </div>
                 </div>
@@ -375,87 +475,10 @@ require 'includes/header.php';
                         All Updates</button>
                 </div>
 
-                <!-- Learning Progress -->
-                <div
-                    class="glass-card rounded-3xl p-6 bg-gradient-to-br from-indigo-50 to-white text-gray-800 border overflow-hidden relative group">
-                    <div
-                        class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-100 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700">
-                    </div>
-                    <h4 class="text-indigo-500 text-sm font-bold uppercase tracking-widest mb-4">Course Progress</h4>
-                    <div class="space-y-6 relative z-10">
-                        <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
-                                <span>Computer Architecture</span>
-                                <span>75%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 75%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
-                                <span>Database Management</span>
-                                <span>45%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 45%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8 relative z-10">
-                        <p class="text-[10px] text-gray-400 mb-2 font-bold uppercase">CURRENT GOAL</p>
-                        <h5 class="text-lg font-black tracking-tight mb-4 text-gray-800">Mastering Microservices
-                            Architecture</h5>
-                        <button
-                            class="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 transform hover:-translate-y-1 transition-all">Keep
-                            Learning</button>
-                    </div>
-                </div>
+                <!-- Learning Progress Removed -->
             </div>
         </div>
     </main>
 </div>
-=======
-require 'includes/header.php';
-?>
-
-<!-- Dashboard Section -->
-<section id="dashboard" class="section pt-24 min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-6 py-12">
-        <div class="text-center mb-12">
-            <h1 class="text-5xl font-extrabold text-gray-900 mb-4 gradient-text">Welcome,
-                <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</h1>
-            <p class="text-xl text-gray-600">Start generating timetables or manage your data</p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-8 mb-16">
-            <div class="card p-8 text-center hover:scale-105 transition">
-                <i class="fas fa-plus-circle text-6xl text-purple-600 mb-6"></i>
-                <h3 class="text-2xl font-bold mb-4">Create New Timetable</h3>
-                <p class="text-gray-600 mb-6">Add subjects, faculty, rooms and generate a new timetable</p>
-                <button class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold">Get Started</button>
-            </div>
-            <div class="card p-8 text-center hover:scale-105 transition">
-                <i class="fas fa-edit text-6xl text-purple-600 mb-6"></i>
-                <h3 class="text-2xl font-bold mb-4">Edit Existing</h3>
-                <p class="text-gray-600 mb-6">Modify previously generated timetables</p>
-                <button class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold">View All</button>
-            </div>
-            <div class="card p-8 text-center hover:scale-105 transition">
-                <i class="fas fa-download text-6xl text-purple-600 mb-6"></i>
-                <h3 class="text-2xl font-bold mb-4">Export & Share</h3>
-                <p class="text-gray-600 mb-6">Download your timetables in PDF or Excel</p>
-                <button class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold">Export</button>
-            </div>
-        </div>
-
-        <div class="text-center">
-            <a href="logout.php" class="text-purple-600 hover:underline font-medium">
-                <i class="fas fa-sign-out-alt mr-2"></i> Log Out
-            </a>
-        </div>
-    </div>
-</section>
->>>>>>> 8f96bcf12d7dea38956dcbf9c98a6cb92f5358f6
 
 <?php require 'includes/footer.php'; ?>

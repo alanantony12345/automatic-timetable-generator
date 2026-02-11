@@ -35,18 +35,20 @@ try {
     $credits = trim($_POST['credits'] ?? '3');
     $batch_year = trim($_POST['batch_year'] ?? '');
 
-    // Validate
-    if (empty($name) || empty($code) || empty($department_id)) {
-        throw new Exception('Please fill in Name, Code, and Department.');
-    }
+    // New Inputs
+    $academic_year = isset($_POST['academic_year']) ? (int) $_POST['academic_year'] : null;
+    $semester = isset($_POST['semester']) ? (int) $_POST['semester'] : null;
+    $section_id = !empty($_POST['section_id']) ? (int) $_POST['section_id'] : null;
 
-    // DB Insert
-    $stmt = $conn->prepare("INSERT INTO subjects (name, code, department_id, credits, batch_year) VALUES (?, ?, ?, ?, ?)");
+    // Prepare Statement
+    $query = "INSERT INTO subjects (name, code, department_id, credits, batch_year, academic_year, semester, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($query);
+
     if (!$stmt) {
         throw new Exception("Database Prepare Error: " . $conn->error);
     }
 
-    $stmt->bind_param("ssiis", $name, $code, $department_id, $credits, $batch_year);
+    $stmt->bind_param("ssiisiii", $name, $code, $department_id, $credits, $batch_year, $academic_year, $semester, $section_id);
 
     if ($stmt->execute()) {
         $response['success'] = true;
@@ -57,7 +59,10 @@ try {
             'code' => $code,
             'department_id' => $department_id,
             'credits' => $credits,
-            'batch_year' => $batch_year
+            'batch_year' => $batch_year,
+            'academic_year' => $academic_year,
+            'semester' => $semester,
+            'section_id' => $section_id
         ];
     } else {
         throw new Exception("Database Execute Error: " . $stmt->error);

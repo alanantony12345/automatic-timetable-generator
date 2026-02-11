@@ -2,16 +2,16 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/db.php';
+require __DIR__ . '/config/db.php';
 
 $error = '';
 
 if (isset($_SESSION['user_id'])) {
     $dashboard_url = 'dashboard.php';
     if (isset($_SESSION['role'])) {
-        if ($_SESSION['role'] === 'Admin') {
+        if (strcasecmp($_SESSION['role'], 'Admin') === 0) {
             $dashboard_url = 'admin_dashboard.php';
-        } elseif ($_SESSION['role'] === 'Faculty') {
+        } elseif (strcasecmp($_SESSION['role'], 'Faculty') === 0) {
             $dashboard_url = 'faculty_dashboard.php';
         }
     }
@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($email) || empty($password)) {
         $error = "Please fill in all fields.";
     } else {
-        // Prepare statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ?");
+        // Prepare statement to prevent SQL injection - Restrict to Student
+        $stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ? AND role = 'Student'");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error = "Invalid password.";
             }
         } else {
-            $error = "No account found with that email.";
+            $error = "No student account found with that email.";
         }
         $stmt->close();
     }
@@ -71,7 +71,9 @@ require 'includes/header.php';
 
             <?php if ($error): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-                    <span class="block sm:inline"><?php echo $error; ?></span>
+                    <span class="block sm:inline">
+                        <?php echo $error; ?>
+                    </span>
                 </div>
             <?php endif; ?>
 
@@ -116,5 +118,43 @@ require 'includes/header.php';
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const emailInput = document.getElementById('login-email');
+        const passwordInput = document.getElementById('login-password');
+
+        function validateField(input, condition, errorMessage) {
+            let errorSpan = input.parentNode.querySelector('.validation-msg');
+            if (!errorSpan) {
+                errorSpan = document.createElement('span');
+                errorSpan.className = 'validation-msg text-xs mt-1 block';
+                input.parentNode.appendChild(errorSpan);
+            }
+
+            if (condition) {
+                input.classList.remove('border-red-500');
+                input.classList.add('border-green-500');
+                errorSpan.textContent = '';
+                return true;
+            } else {
+                input.classList.remove('border-green-500');
+                input.classList.add('border-red-500');
+                errorSpan.textContent = errorMessage;
+                errorSpan.style.color = '#ef4444';
+                return false;
+            }
+        }
+
+        emailInput.addEventListener('input', function () {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            validateField(emailInput, emailRegex.test(emailInput.value), 'Please enter a valid email address.');
+        });
+
+        passwordInput.addEventListener('input', function () {
+            validateField(passwordInput, passwordInput.value.length >= 1, 'Password is required.');
+        });
+    });
+</script>
 
 <?php require 'includes/footer.php'; ?>

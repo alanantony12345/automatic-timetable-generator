@@ -2,7 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/db.php';
+require __DIR__ . '/includes/config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
