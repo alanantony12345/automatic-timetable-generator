@@ -344,10 +344,26 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
-                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                    <i class="fas fa-building"></i> Departments
-                </a>
+                <div class="relative group">
+                    <button id="link-dept-manage" onclick="showSection('dept-manage')"
+                        class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                        <div class="flex items-center gap-3"><i class="fas fa-building"></i> Departments</div>
+                        <i class="fas fa-chevron-right text-[10px] transition-transform group-hover:rotate-90"></i>
+                    </button>
+                    <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
+                        <a href="javascript:void(0)" onclick="showSection('dept-manage')"
+                            class="block py-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">Manage
+                            All</a>
+                        <?php foreach ($departments_list as $dept): ?>
+                            <a href="javascript:void(0)"
+                                onclick="showSection('dept-manage'); /* Future: Filter by this dept */"
+                                class="block py-1.5 text-xs text-slate-500 hover:text-indigo-600 transition truncate"
+                                title="<?php echo htmlspecialchars($dept['name']); ?>">
+                                <?php echo htmlspecialchars($dept['name']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -391,8 +407,6 @@ if ($conn) {
                     class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
                     <i class="fas fa-sync"></i> Regenerate
                 </a>
-
-
 
                 <div class="relative group">
                     <button
@@ -488,7 +502,6 @@ if ($conn) {
                         </div>
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <div class="stat-card glass-card p-6 rounded-3xl shadow-sm border border-slate-100">
                         <div
@@ -606,24 +619,44 @@ if ($conn) {
                                 <select name="department_id" id="subject_dept_id" required
                                     onchange="filterSubjectSections()"
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Dept</option>
-                                    <?php if (empty($departments_list)): ?>
-                                        <option value="" disabled>No departments found</option>
-                                    <?php else: ?>
-                                        <?php foreach ($departments_list as $dept): ?>
-                                            <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <option value="">-- Select Department --</option>
+                                    <?php foreach ($departments_list as $dept): ?>
+                                        <option value="<?php echo $dept['id']; ?>">
+                                            <?php echo htmlspecialchars($dept['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
-                                <?php if (empty($departments_list)): ?>
-                                    <p class="text-xs text-red-500 mt-1">
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                                        No departments available. <a href="#" onclick="showSection('dept-manage')"
-                                            class="text-indigo-600 underline">Add departments first</a>
-                                    </p>
-                                <?php endif; ?>
+                            </div>
+                            <!-- New Fields -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Academic
+                                    Year</label>
+                                <select name="academic_year" id="subject_year" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Semester</label>
+                                <select name="semester" id="subject_semester" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Sem</option>
+                                    <?php for ($i = 1; $i <= 8; $i++)
+                                        echo "<option value='$i'>Sem $i</option>"; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section
+                                    (Optional)</label>
+                                <select name="section_id" id="subject_section_id"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">-- All Sections --</option>
+                                    <!-- Populated by JS -->
+                                </select>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
                                 <button type="submit"
@@ -674,8 +707,7 @@ if ($conn) {
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <button onclick='openEditSubjectModal(<?php echo json_encode($sub); ?>)'
-                                                    class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i
+                                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
                                                         class="fas fa-edit"></i></button>
                                                 <button onclick="deleteSubject(<?php echo $sub['id']; ?>, this)"
                                                     class="text-slate-400 hover:text-red-500 mx-2"><i
@@ -1073,7 +1105,7 @@ if ($conn) {
                                 <?php foreach ($departments_list as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>">
                                         <?php echo htmlspecialchars($dept['name']); ?>
-                                    </option>
+                                        </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1138,91 +1170,6 @@ if ($conn) {
                             <i class="fas fa-list-ul text-indigo-500"></i> Course Allocations
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="view-allocations-list">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- View Timetable Faculty Wise -->
-            <section id="view-fac-wise-section" class="hidden space-y-8">
-                <!-- Wrapper -->
-                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-slate-800">View Faculty Timetable</h3>
-                            <p class="text-slate-400 text-sm">View allocations and schedule for a specific faculty
-                                member.</p>
-                        </div>
-                        <!-- Version Select (Reused/Synced) -->
-                        <div class="flex gap-2">
-                            <select id="view-fac-version-id"
-                                class="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Select Version...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Filters -->
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <div class="md:col-span-3">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Faculty Member</label>
-                            <select id="view-faculty-id"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
-                                <option value="">Select Faculty</option>
-                                <?php foreach ($all_faculties_list as $f): ?>
-                                    <option value="<?php echo $f['id']; ?>"><?php echo htmlspecialchars($f['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button onclick="loadFacultyTimetable()"
-                                class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
-                                <i class="fas fa-search mr-2"></i> Load Schedule
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Grid Container -->
-                    <div id="view-fac-grid-container" class="overflow-x-auto rounded-xl border border-slate-200 hidden">
-                        <table class="w-full text-sm text-left">
-                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th class="px-6 py-4 font-bold w-32 bg-slate-50 sticky left-0 z-10">Day / Period
-                                    </th>
-                                    <th class="px-6 py-4 text-center">1</th>
-                                    <th class="px-6 py-4 text-center">2</th>
-                                    <th class="px-6 py-4 text-center">3</th>
-                                    <th class="px-6 py-4 text-center">4</th>
-                                    <th class="px-6 py-4 text-center bg-slate-100/50">LUNCH</th>
-                                    <th class="px-6 py-4 text-center">5</th>
-                                    <th class="px-6 py-4 text-center">6</th>
-                                    <th class="px-6 py-4 text-center">7</th>
-                                </tr>
-                            </thead>
-                            <tbody id="view-fac-grid-body" class="divide-y divide-slate-100">
-                                <!-- JS Populated -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="view-fac-empty-state" class="py-20 text-center">
-                        <div
-                            class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <p class="text-slate-400 font-medium">Select a faculty to view their schedule.</p>
-                    </div>
-
-                    <!-- Allocations Summary -->
-                    <div id="view-fac-allocations-wrapper"
-                        class="hidden mt-8 border-t border-slate-100 pt-8 animate-fade-in">
-                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <i class="fas fa-list-ul text-indigo-500"></i> Allocated Subjects
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                            id="view-fac-allocations-list">
                             <!-- Populated by JS -->
                         </div>
                     </div>
@@ -1404,9 +1351,9 @@ if ($conn) {
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['id']; ?>">
-                                    <?php echo htmlspecialchars($dept['name']); ?>
-                                </option>
+                                    <option value="<?php echo $dept['id']; ?>">
+                                        <?php echo htmlspecialchars($dept['name']); ?>
+                                    </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -1440,9 +1387,9 @@ if ($conn) {
                         <select name="department_id" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <?php foreach ($departments_list as $dept): ?>
-                                <option value="<?php echo $dept['id']; ?>">
-                                    <?php echo htmlspecialchars($dept['name']); ?>
-                                </option>
+                                    <option value="<?php echo $dept['id']; ?>">
+                                        <?php echo htmlspecialchars($dept['name']); ?>
+                                    </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -1585,119 +1532,16 @@ if ($conn) {
             </div>
         </div>
 
+        <?php
+        $sections_path = __DIR__ . '/includes/admin_sections.html';
+        if (file_exists($sections_path)) {
+            include $sections_path;
+        }
+        ?>
     </main>
-
-    <!-- Edit Subject Modal -->
-    <div id="edit-subject-modal"
-        class="hidden fixed inset-0 bg-black/50 z-[80] flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-3xl w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="document.getElementById('edit-subject-modal').classList.add('hidden')"
-                class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-bold text-slate-800 mb-1">Edit Subject</h3>
-            <p class="text-slate-400 text-sm mb-6">Modify subject details.</p>
-
-            <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();" class="space-y-6">
-                <input type="hidden" name="id" id="edit_subject_id">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
-                        <input type="text" name="name" id="edit_subject_name" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
-                        <input type="text" name="code" id="edit_subject_code" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-                        <select name="department_id" id="edit_subject_dept" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                            <?php
-                            $dept_query = "SELECT * FROM departments ORDER BY name ASC";
-                            $dept_result = $conn->query($dept_query);
-                            if ($dept_result->num_rows > 0) {
-                                while ($d = $dept_result->fetch_assoc()) {
-                                    echo "<option value='" . $d['id'] . "'>" . $d['name'] . "</option>";
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
-                        <input type="number" name="credits" id="edit_subject_credits" value="3" min="1" max="10"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                </div>
-
-                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                    <h4 class="text-sm font-bold text-indigo-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-layer-group"></i> Batch & Class Details (Optional)
-                    </h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Batch Year</label>
-                            <input type="text" name="batch_year" id="edit_subject_batch" placeholder="e.g. 2024-2028"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Academic
-                                Year</label>
-                            <select name="academic_year" id="edit_subject_year"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- Select --</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Semester</label>
-                            <select name="semester" id="edit_subject_sem"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- Select --</option>
-                                <option value="1">Odd (1,3,5,7)</option>
-                                <option value="2">Even (2,4,6,8)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Section</label>
-                            <select name="section_id" id="edit_subject_sec"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- General / Common --</option>
-                                <?php
-                                $sec_q = "SELECT s.id, s.section_name, d.code FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY d.code, s.section_name";
-                                $sec_r = $conn->query($sec_q);
-                                if ($sec_r->num_rows > 0) {
-                                    while ($sec = $sec_r->fetch_assoc()) {
-                                        echo "<option value='" . $sec['id'] . "'>" . $sec['code'] . " - " . $sec['section_name'] . "</option>";
-                                    }
-                                }
-                                ?>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" id="btn-update-subject"
-                    class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition transform active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
-            </form>
-        </div>
-    </div>
 
     <script>
         function showSection(sectionId) {
-            // Update URL hash without jumping if possible
-            window.location.hash = sectionId;
-
             // Alias regenerate to generate
             if (sectionId === 'regenerate') sectionId = 'generate';
 
@@ -1707,7 +1551,6 @@ if ($conn) {
                 if (sec.id && sec.id.endsWith('-section')) {
                     sec.classList.add('hidden');
                 }
-                // Custom check if manual sections array was used previously, but querySelectorAll is safer
             });
 
             // 2. Remove active class from all links
@@ -1743,12 +1586,10 @@ if ($conn) {
                 'profile': 'Admin Profile',
                 'password': 'Change Password',
                 'user-manage': 'User Management',
-                'password': 'Change Password',
-                'user-manage': 'User Management',
                 'view-dept-wise': 'View Timetable (Department)',
-                'view-fac-wise': 'View Timetable (Faculty)',
                 'reports': 'Reports & Analytics'
             };
+
             const titleEl = document.getElementById('section-title');
             if (titleEl) {
                 titleEl.innerText = titles[sectionId] || 'Admin Dashboard';
@@ -1854,384 +1695,389 @@ if ($conn) {
             const removeBtn = template.querySelector('button');
             if (removeBtn) {
                 removeBtn.classList.remove('hidden'); // Ensure it's not hidden if the template had it hidden
-                // Note: The onclick "this.closest('.allocation-row').remove()" is already on the button in HTML
+                // Note: The onclick "this.closest('.allocation-row').remove()" is already on the button in HTML}
+
+                container.appendChild(template);
+
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
             }
 
-            container.appendChild(template);
+            function addDept() {
+                const form = document.getElementById('add-dept-form');
+                const btn = form.querySelector('button[type="submit"]');
+                const originalBtn = btn.innerHTML;
 
-            // Scroll to bottom
-            container.scrollTop = container.scrollHeight;
-        }
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
-        function addDept() {
-            const form = document.getElementById('add-dept-form');
-            const btn = form.querySelector('button[type="submit"]');
-            const originalBtn = btn.innerHTML;
+                const data = new FormData(form);
+                fetch('actions/add_dept.php', { method: 'POST', body: data })
+                    .then(r => r.json())
+                    .then(res => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtn;
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-
-            const data = new FormData(form);
-            fetch('actions/add_dept.php', { method: 'POST', body: data })
-                .then(r => r.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtn;
-
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        const tbody = document.getElementById('dept-table-body');
-                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No departments found')) tbody.innerHTML = '';
-
-                        const d = res.dept;
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                        row.innerHTML = `
-                            <td class="px-6 py-4 font-bold text-slate-800">${d.name}</td>
-                            <td class="px-6 py-4 text-sm text-slate-500">${d.code}</td>
-                            <td class="px-6 py-4 text-right">
-                                <button onclick="deleteDept(${d.id}, this)" class="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.insertBefore(row, tbody.firstChild);
-                        form.reset();
-                        document.getElementById('dept-modal').classList.add('hidden');
-
-                        // Optionally reload to update dropdowns elsewhere if needed, 
-                        // but for now just update the table.
-                    } else showToast(res.message, 'error');
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtn;
-                    showToast('Error adding department', 'error');
-                });
-        }
-
-        function deleteDept(id, btn) {
-            if (!confirm('Delete this department? This might affect subjects and faculty linked to it.')) return;
-
-            const row = btn.closest('tr');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            const fd = new FormData();
-            fd.append('id', id);
-
-            fetch('actions/delete_dept.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        row.classList.add('animate-fade-out');
-                        setTimeout(() => {
-                            row.remove();
+                        if (res.success) {
+                            showToast(res.message, 'success');
                             const tbody = document.getElementById('dept-table-body');
-                            if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No departments found.</td></tr>';
-                        }, 400);
-                    } else {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHTML;
-                        showToast(res.message, 'error');
-                    }
-                });
-        }
+                            if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No departments found')) tbody.innerHTML
+                                = '';
 
-        function addRoom() {
-            const form = document.getElementById('add-room-form');
-            const data = new FormData(form);
+                            const d = res.dept;
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                            row.innerHTML = `
+                <td class="px-6 py-4 font-bold text-slate-800">${d.name}</td>
+                <td class="px-6 py-4 text-sm text-slate-500">${d.code}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="deleteDept(${d.id}, this)"
+                        class="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+                `;
+                            tbody.insertBefore(row, tbody.firstChild);
+                            form.reset();
+                            document.getElementById('dept-modal').classList.add('hidden');
 
-            fetch('actions/add_room.php', { method: 'POST', body: data })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        alert(res.message);
-                        const container = document.getElementById('rooms-container');
-                        if (container.querySelector('p')?.innerText.includes('No rooms found')) {
-                            container.innerHTML = '';
-                        }
-                        const room = res.room;
-                        const card = document.createElement('div');
-                        card.className = 'p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group overflow-hidden animate-fade-in';
-                        card.innerHTML = `
-                            <button onclick="deleteRoom(${room.id}, this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"><i class="fas fa-trash text-xs"></i></button>
-                            <div class="flex justify-between items-start mb-6">
-                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
-                                    <i class="fas fa-laptop-code text-sm"></i>
-                                </div>
-                                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px] font-bold uppercase">${room.type}</span>
-                            </div>
-                            <h4 class="text-lg font-bold text-slate-800">${room.name}</h4>
-                            <div class="mt-4 flex flex-wrap gap-1">
-                                <span class="px-2 py-0.5 border border-slate-200 rounded text-[8px] text-slate-500">${room.equipment || 'Standard'}</span>
-                            </div>
-                            <div class="mt-4 flex items-end justify-between">
-                                <div>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Capacity</p>
-                                    <p class="text-xl font-extrabold text-slate-800">${room.capacity}</p>
-                                </div>
-                                <div class="w-10 h-10 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500">
-                                    <span class="text-[10px] font-bold">OK</span>
-                                </div>
-                            </div>
-                        `;
-                        container.insertBefore(card, container.firstChild);
-                        form.reset();
-                        document.getElementById('room-modal').classList.add('hidden');
-                    } else {
-                        alert(res.message);
-                    }
-                });
-        }
-
-        function deleteRoom(id, btn) {
-            if (!confirm('Are you sure you want to delete this room?')) return;
-            const fd = new FormData();
-            fd.append('id', id);
-            fetch('actions/delete_room.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        btn.closest('.group').remove();
-                        const container = document.getElementById('rooms-container');
-                        if (container.children.length === 0) {
-                            container.innerHTML = '<p class="text-slate-400 text-sm">No rooms found.</p>';
-                        }
-                    } else {
-                        alert(res.message);
-                    }
-                });
-        }
-
-        function addSection() {
-            const form = document.getElementById('add-section-form');
-            const data = new FormData(form);
-
-            fetch('actions/add_section.php', { method: 'POST', body: data })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        alert(res.message);
-                        const tbody = document.getElementById('sections-table-body');
-                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No sections found')) {
-                            tbody.innerHTML = '';
-                        }
-                        const sec = res.section;
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                        row.innerHTML = `
-                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.department_id}</td>
-                            <td class="px-6 py-4 text-sm text-slate-600">Yr ${sec.year}, Sem ${sec.semester}</td>
-                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.section_name}</td>
-                            <td class="px-6 py-4 text-sm text-slate-500">${sec.student_strength}</td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteSection(${sec.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i class="fas fa-trash"></i></button>
-                            </td>
-                        `;
-                        tbody.insertBefore(row, tbody.firstChild);
-                        form.reset();
-                        document.getElementById('section-modal').classList.add('hidden');
-                    } else {
-                        alert(res.message);
-                    }
-                });
-        }
-
-        function deleteSection(id, btn) {
-            if (!confirm('Are you sure you want to delete this section?')) return;
-
-            const row = btn.closest('tr');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            const fd = new FormData();
-            fd.append('id', id);
-            fetch('actions/delete_section.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        row.classList.add('animate-fade-out');
-                        setTimeout(() => {
-                            row.remove();
-                            const tbody = document.getElementById('sections-table-body');
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No sections found.</td></tr>';
-                            }
-                        }, 400);
-                    } else {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHTML;
-                        showToast(res.message, 'error');
-                    }
-                });
-        }
-
-        function toggleAddSubjectForm() {
-            const form = document.getElementById('add-subject-form');
-            if (form.classList.contains('hidden')) {
-                form.classList.remove('hidden');
-                form.classList.add('animate-fade-in');
-                form.querySelector('input').focus();
-            } else {
-                form.classList.add('animate-fade-out');
-                setTimeout(() => {
-                    form.classList.add('hidden');
-                    form.classList.remove('animate-fade-out');
-                }, 400);
+                        // Optionally reload to update dropdowns elsewhere if needed,
+                        // but for now just update the table.} else showToast(res.message, 'error');})
+                .catch (err => {
+                                btn.disabled = false;
+                                btn.innerHTML = originalBtn;
+                                showToast('Error adding department', 'error');
+                            });
             }
-        }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            checkGenerationStatus();
-            loadViewVersions(); // Load versions for viewer
-            // Poll status every 30 seconds
-            setInterval(checkGenerationStatus, 30000);
-        });
+            function deleteDept(id, btn) {
+                if (!confirm('Delete this department? This might affect subjects and faculty linked to it.')) return;
 
-        // Generation Logic
-        let currentDraftId = null;
+                const row = btn.closest('tr');
+                const originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        function log(msg) {
-            const out = document.getElementById('console-output');
-            const lines = document.getElementById('console-lines');
-            out.classList.remove('hidden');
-            const p = document.createElement('p');
-            p.innerHTML = `<span class="text-indigo-400">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-            lines.appendChild(p);
-            out.scrollTop = out.scrollHeight;
-        }
+                const fd = new FormData();
+                fd.append('id', id);
 
-        function checkGenerationStatus() {
-            fetch('actions/get_generation_status.php')
-                .then(r => r.json())
-                .then(d => {
-                    if (d.success) {
-                        const statusBadge = document.getElementById('status-badge');
-                        const statusDesc = document.getElementById('status-desc');
-                        const lastUpd = document.getElementById('status-last-updated');
-
-                        // Status Widget Update
-                        if (d.active) {
-                            statusBadge.innerText = 'Active';
-                            statusDesc.innerText = 'System is running on Version: ' + d.active.version_name;
-                            lastUpd.innerText = new Date(d.active.created_at).toLocaleDateString();
-                        } else if (d.draft) {
-                            statusBadge.innerText = 'Draft Mode';
-                            statusDesc.innerText = 'Draft available: ' + d.draft.version_name;
-                            lastUpd.innerText = new Date(d.draft.created_at).toLocaleDateString();
-                            currentDraftId = d.draft.id;
+                fetch('actions/delete_dept.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            showToast(res.message, 'success');
+                            row.classList.add('animate-fade-out');
+                            setTimeout(() => {
+                                row.remove();
+                                const tbody = document.getElementById('dept-table-body');
+                                if (tbody.children.length === 0) tbody.innerHTML = '<tr><td colspan = "3" class="px-6 py-8 text-center text-slate-400 text-sm"> No departments found.</td></tr>';
+                            }, 400);
                         } else {
-                            statusBadge.innerText = 'Not Generated';
-                            statusDesc.innerText = 'No timetable versions found.';
-                            lastUpd.innerText = '-';
-                        }
-                    }
-                });
-        }
-
-        function startGeneration() {
-            const btn = document.getElementById('btn-generate');
-            const resDiv = document.getElementById('generation-results');
-            const consoleOut = document.getElementById('console-output');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Generating...';
-            resDiv.classList.add('hidden');
-            consoleOut.classList.remove('hidden');
-            document.getElementById('console-lines').innerHTML = ''; // Request clear
-
-            log('Initializing generation process...');
-
-            fetch('actions/generate_timetable_v2.php')
-                .then(r => r.text()) // Get text first
-                .then(text => {
-                    try {
-                        const d = JSON.parse(text); // Try parse
-                        if (d.success) {
-                            log('Generation complete!');
-                            log(`Entries created: ${d.entries_count}`);
-                            log(`Conflicts detected: ${d.conflicts_count}`);
-
-                            currentDraftId = d.version_id;
-
-                            btn.innerHTML = '<i class="fas fa-play"></i> Regenerate';
                             btn.disabled = false;
+                            btn.innerHTML = originalHTML;
+                            showToast(res.message, 'error');
+                        }
+                    });
+            }
 
-                            resDiv.classList.remove('hidden');
-                            resDiv.classList.add('animate-fade-in');
+            function addRoom() {
+                const form = document.getElementById('add-room-form');
+                const data = new FormData(form);
 
-                            checkGenerationStatus(); // Update widget
+                fetch('actions/add_room.php', { method: 'POST', body: data })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            alert(res.message);
+                            const container = document.getElementById('rooms-container');
+                            if (container.querySelector('p')?.innerText.includes('No rooms found')) {
+                                container.innerHTML = '';
+                            }
+                            const room = res.room;
+                            const card = document.createElement('div');
+                            card.className = 'p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group overflow-hidden
+                            animate - fade -in ';
+                            card.innerHTML = `
+                <button onclick="deleteRoom(${room.id}, this)"
+                    class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"><i
+                        class="fas fa-trash text-xs"></i></button>
+                <div class="flex justify-between items-start mb-6">
+                    <div
+                        class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                        <i class="fas fa-laptop-code text-sm"></i>
+                    </div>
+                    <span
+                        class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px] font-bold uppercase">${room.type}</span>
+                </div>
+                <h4 class="text-lg font-bold text-slate-800">${room.name}</h4>
+                <div class="mt-4 flex flex-wrap gap-1">
+                    <span class="px-2 py-0.5 border border-slate-200 rounded text-[8px] text-slate-500">${room.equipment
+                                || 'Standard'}</span>
+                </div>
+                <div class="mt-4 flex items-end justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Capacity</p>
+                        <p class="text-xl font-extrabold text-slate-800">${room.capacity}</p>
+                    </div>
+                    <div
+                        class="w-10 h-10 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500">
+                        <span class="text-[10px] font-bold">OK</span>
+                    </div>
+                </div>
+                `;
+                            container.insertBefore(card, container.firstChild);
+                            form.reset();
+                            document.getElementById('room-modal').classList.add('hidden');
                         } else {
-                            log('Error: ' + d.message);
-                            alert('Generation Failed: ' + d.message);
+                            alert(res.message);
+                        }
+                    });
+            }
+
+            function deleteRoom(id, btn) {
+                if (!confirm('Are you sure you want to delete this room?')) return;
+                const fd = new FormData();
+                fd.append('id', id);
+                fetch('actions/delete_room.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            btn.closest('.group').remove();
+                            const container = document.getElementById('rooms-container');
+                            if (container.children.length === 0) {
+                                container.innerHTML = '<p class="text-slate-400 text-sm">No rooms found.</p>';
+                            }
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+            }
+
+            function addSection() {
+                const form = document.getElementById('add-section-form');
+                const data = new FormData(form);
+
+                fetch('actions/add_section.php', { method: 'POST', body: data })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            alert(res.message);
+                            const tbody = document.getElementById('sections-table-body');
+                            if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No sections found')) {
+                                tbody.innerHTML = '';
+                            }
+                            const sec = res.section;
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-slate-50 transition animate-fade-in';
+                            row.innerHTML = `
+                <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.department_id}</td>
+                <td class="px-6 py-4 text-sm text-slate-600">Yr ${sec.year}, Sem ${sec.semester}</td>
+                <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sec.section_name}</td>
+                <td class="px-6 py-4 text-sm text-slate-500">${sec.student_strength}</td>
+                <td class="px-6 py-4 text-right">
+                    <button class="text-slate-400 hover:text-indigo-600 mx-2"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteSection(${sec.id}, this)" class="text-slate-400 hover:text-red-500 mx-2"><i
+                            class="fas fa-trash"></i></button>
+                </td>
+                `;
+                            tbody.insertBefore(row, tbody.firstChild);
+                            form.reset();
+                            document.getElementById('section-modal').classList.add('hidden');
+                        } else {
+                            alert(res.message);
+                        }
+                    });
+            }
+
+            function deleteSection(id, btn) {
+                if (!confirm('Are you sure you want to delete this section?')) return;
+
+                const row = btn.closest('tr');
+                const originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                const fd = new FormData();
+                fd.append('id', id);
+                fetch('actions/delete_section.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            showToast(res.message, 'success');
+                            row.classList.add('animate-fade-out');
+                            setTimeout(() => {
+                                row.remove();
+                                const tbody = document.getElementById('sections-table-body');
+                                if (tbody.children.length === 0) {
+                                    tbody.innerHTML = '<tr><td colspan = "5" class="px-6 py-8 text-center text-slate-400 text-sm"> No sections found.</td></tr>';
+                                }
+                            }, 400);
+                        } else {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHTML;
+                            showToast(res.message, 'error');
+                        }
+                    });
+            }
+
+            function toggleAddSubjectForm() {
+                const form = document.getElementById('add-subject-form');
+                if (form.classList.contains('hidden')) {
+                    form.classList.remove('hidden');
+                    form.classList.add('animate-fade-in');
+                    form.querySelector('input').focus();
+                } else {
+                    form.classList.add('animate-fade-out');
+                    setTimeout(() => {
+                        form.classList.add('hidden');
+                        form.classList.remove('animate-fade-out');
+                    }, 400);
+                }
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', () => {
+                checkGenerationStatus();
+                loadViewVersions(); // Load versions for viewer
+                // Poll status every 30 seconds
+                setInterval(checkGenerationStatus, 30000);
+            });
+
+            // Generation Logic
+            let currentDraftId = null;
+
+            function log(msg) {
+                const out = document.getElementById('console-output');
+                const lines = document.getElementById('console-lines');
+                out.classList.remove('hidden');
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="text-indigo-400">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+                lines.appendChild(p);
+                out.scrollTop = out.scrollHeight;
+            }
+
+            function checkGenerationStatus() {
+                fetch('actions/get_generation_status.php')
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            const statusBadge = document.getElementById('status-badge');
+                            const statusDesc = document.getElementById('status-desc');
+                            const lastUpd = document.getElementById('status-last-updated');
+
+                            // Status Widget Update
+                            if (d.active) {
+                                statusBadge.innerText = 'Active';
+                                statusDesc.innerText = 'System is running on Version: ' + d.active.version_name;
+                                lastUpd.innerText = new Date(d.active.created_at).toLocaleDateString();
+                            } else if (d.draft) {
+                                statusBadge.innerText = 'Draft Mode';
+                                statusDesc.innerText = 'Draft available: ' + d.draft.version_name;
+                                lastUpd.innerText = new Date(d.draft.created_at).toLocaleDateString();
+                                currentDraftId = d.draft.id;
+                            } else {
+                                statusBadge.innerText = 'Not Generated';
+                                statusDesc.innerText = 'No timetable versions found.';
+                                lastUpd.innerText = '-';
+                            }
+                        }
+                    });
+            }
+
+            function startGeneration() {
+                const btn = document.getElementById('btn-generate');
+                const resDiv = document.getElementById('generation-results');
+                const consoleOut = document.getElementById('console-output');
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Generating...';
+                resDiv.classList.add('hidden');
+                consoleOut.classList.remove('hidden');
+                document.getElementById('console-lines').innerHTML = ''; // Request clear
+
+                log('Initializing generation process...');
+
+                fetch('actions/generate_timetable_v2.php')
+                    .then(r => r.text()) // Get text first
+                    .then(text => {
+                        try {
+                            const d = JSON.parse(text); // Try parse
+                            if (d.success) {
+                                log('Generation complete!');
+                                log(`Entries created: ${d.entries_count}`);
+                                log(`Conflicts detected: ${d.conflicts_count}`);
+
+                                currentDraftId = d.version_id;
+
+                                btn.innerHTML = '<i class="fas fa-play"></i> Regenerate';
+                                btn.disabled = false;
+
+                                resDiv.classList.remove('hidden');
+                                resDiv.classList.add('animate-fade-in');
+
+                                checkGenerationStatus(); // Update widget} else {
+                                log('Error: ' + d.message);
+                                alert('Generation Failed: ' + d.message);
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
+                            }
+                        } catch (e) {
+                            // JSON Parse Failed
+                            console.error('Raw Server Response:', text);
+                            log('Fatal Error: Invalid Server Response');
+                            log('Raw Output: ' + text.substring(0, 100) + '...');
+                            alert('Server Error: ' + text); // Show the user the raw PHP error
                             btn.disabled = false;
                             btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
                         }
-                    } catch (e) {
-                        // JSON Parse Failed
-                        console.error('Raw Server Response:', text);
-                        log('Fatal Error: Invalid Server Response');
-                        log('Raw Output: ' + text.substring(0, 100) + '...');
-                        alert('Server Error: ' + text); // Show the user the raw PHP error
+                    })
+                    .catch(e => {
+                        log('Network Error: ' + e);
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
-                    }
-                })
-                .catch(e => {
-                    log('Network Error: ' + e);
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-redo"></i> Retry';
-                });
-        }
+                    });
+            }
 
-        function publishTimetable() {
-            if (!currentDraftId) return;
+            function publishTimetable() {
+                if (!currentDraftId) return;
 
-            const btn = document.getElementById('btn-publish');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                const btn = document.getElementById('btn-publish');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-            const fd = new FormData();
-            fd.append('version_id', currentDraftId);
+                const fd = new FormData();
+                fd.append('version_id', currentDraftId);
 
-            fetch('actions/publish_timetable.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(d => {
-                    if (d.success) {
-                        showToast('Timetable Published Successfully!', 'success');
-                        checkGenerationStatus();
-                        // Reset UI
-                        document.getElementById('generation-results').classList.add('hidden');
-                        document.getElementById('console-output').classList.add('hidden');
-                    } else {
-                        showToast(d.message, 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = 'Publish';
-                    }
-                });
-        }
+                fetch('actions/publish_timetable.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            showToast('Timetable Published Successfully!', 'success');
+                            checkGenerationStatus();
+                            // Reset UI
+                            document.getElementById('generation-results').classList.add('hidden');
+                            document.getElementById('console-output').classList.add('hidden');
+                        } else {
+                            showToast(d.message, 'error');
+                            btn.disabled = false;
+                            btn.innerHTML = 'Publish';
+                        }
+                    });
+            }
 
-        // View Timetable Logic
-        function loadViewVersions() {
-            fetch('actions/get_generation_status.php')
-                .then(r => r.json())
-                .then(d => {
-                    const updateSelect = (id) => {
-                        const sel = document.getElementById(id);
-                        if (!sel) return;
+            // View Timetable Logic
+            function loadViewVersions() {
+                fetch('actions/get_generation_status.php')
+                    .then(r => r.json())
+                    .then(d => {
+                        const sel = document.getElementById('view-version-id');
                         sel.innerHTML = '<option value="">Select Version...</option>';
                         if (d.active) {
                             const opt = document.createElement('option');
                             opt.value = d.active.id;
-                            opt.innerText = `Active: ${d.active.version_name} (${new Date(d.active.created_at).toLocaleDateString()})`;
-                            opt.selected = true;
+                            opt.innerText = `Active: ${d.active.version_name} (${new
+                                Date(d.active.created_at).toLocaleDateString()})`;
+                            opt.selected = true; // Auto select active
                             sel.appendChild(opt);
                         }
                         if (d.draft) {
@@ -2240,104 +2086,91 @@ if ($conn) {
                             opt.innerText = `Draft: ${d.draft.version_name} (${new Date(d.draft.created_at).toLocaleDateString()})`;
                             sel.appendChild(opt);
                         }
-                    };
-                    updateSelect('view-version-id');
-                    updateSelect('view-fac-version-id');
-                });
-        }
-
-        function loadTimetableGrid() {
-            const vId = document.getElementById('view-version-id').value;
-            const sId = document.getElementById('view-section-id').value;
-
-            if (!vId || !sId) {
-                showToast('Please select Version and Section', 'info');
-                return;
+                    });
             }
 
-            const btn = document.querySelector('button[onclick="loadTimetableGrid()"]');
-            const originalInfo = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            function loadTimetableGrid() {
+                const vId = document.getElementById('view-version-id').value;
+                const sId = document.getElementById('view-section-id').value;
 
-            fetch(`actions/fetch_timetable_grid.php?version_id=${vId}&section_id=${sId}`)
-                .then(r => r.json())
-                .then(d => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalInfo;
-
-                    if (d.success) {
-                        renderGrid(d.entries);
-                        renderAllocations(d.allocations);
-                    } else {
-                        showToast(d.message, 'error');
-                    }
-                });
-        }
-
-        function renderGrid(entries) {
-            const tbody = document.getElementById('view-grid-body');
-            const container = document.getElementById('view-grid-container');
-            const empty = document.getElementById('view-empty-state');
-
-            tbody.innerHTML = '';
-
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-            days.forEach(day => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition border-b border-slate-50 last:border-b-0';
-
-                let html = `<td class="px-6 py-6 font-bold text-slate-800 bg-white sticky left-0 border-r border-slate-100">${day}</td>`;
-
-                // Periods 1-4
-                for (let i = 1; i <= 4; i++) {
-                    html += getCellHtml(day, i, entries);
+                if (!vId || !sId) {
+                    showToast('Please select Version and Section', 'info');
+                    return;
                 }
 
-                // Lunch
-                html += `<td class="px-2 py-4 text-center bg-slate-50/50"><div class="h-full w-px mx-auto bg-slate-200 dashed"></div></td>`;
+                const btn = document.querySelector('button[onclick="loadTimetableGrid()"]');
+                const originalInfo = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
 
-                // Periods 5-7
-                for (let i = 5; i <= 7; i++) {
-                    html += getCellHtml(day, i, entries);
-                }
+                fetch(`actions/fetch_timetable_grid.php?version_id=${vId}&section_id=${sId}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalInfo;
 
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
+                        if (d.success) {
+                            renderGrid(d.entries);
+                            renderAllocations(d.allocations);
+                        } else {
+                            showToast(d.message, 'error');
+                        }
+                    });
+            }
 
-            container.classList.remove('hidden');
-            empty.classList.add('hidden');
-        }
+            function renderGrid(entries) {
+                const tbody = document.getElementById('view-grid-body');
+                const container = document.getElementById('view-grid-container');
+                const empty = document.getElementById('view-empty-state');
 
-        function getCellHtml(day, period, entries) {
-            const key = `${day}-${period}`;
-            const entry = entries[key];
+                tbody.innerHTML = '';
 
-            if (entry) {
-                return `
-                    <td class="px-4 py-4 align-top h-32 w-48 border-r border-slate-100 last:border-r-0">
-                        <div class="h-full flex flex-col justify-between group cursor-pointer hover:bg-white p-2 rounded-xl transition border border-transparent hover:border-indigo-100 hover:shadow-sm">
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+                days.forEach(day => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-50 last:border-b-0';
+
+                    let html = `<td
+                    class="px-6 py-6 font-bold text-slate-800 bg-white sticky left-0 border-r border-slate-100">${day}
+                </td>`;
+
+                    // Periods 1-4
+                    for (let i = 1; i <= 4; i++) { html += getCellHtml(day, i, entries); } // Lunch html +=`<td
+                    class="px-2 py-4 text-center bg-slate-50/50" >
+                        <div class="h-full w-px mx-auto bg-slate-200 dashed"></div>
+                    </td > `;
+
+                    // Periods 5-7
+                    for (let i = 5; i <= 7; i++) { html +=getCellHtml(day, i, entries);} tr.innerHTML=html;
+                        tbody.appendChild(tr);}); container.classList.remove('hidden'); empty.classList.add('hidden');} function getCellHtml(day, period, entries) { const key=`${ day } -${ period } `; const
+                        entry=entries[key]; if (entry) { return ` < td
+                    class="px-4 py-4 align-top h-32 w-48 border-r border-slate-100 last:border-r-0" >
+                        <div
+                            class="h-full flex flex-col justify-between group cursor-pointer hover:bg-white p-2 rounded-xl transition border border-transparent hover:border-indigo-100 hover:shadow-sm">
                             <div>
                                 <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-1 block">
                                     ${entry.subject_code}
                                 </span>
-                                <h4 class="text-sm font-bold text-slate-800 leading-tight mb-2 line-clamp-2" title="${entry.subject_name}">
+                                <h4 class="text-sm font-bold text-slate-800 leading-tight mb-2 line-clamp-2"
+                                    title="${entry.subject_name}">
                                     ${entry.subject_name}
                                 </h4>
                             </div>
                             <div class="border-t border-slate-100 pt-2 mt-2">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
+                                    <div
+                                        class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
                                         <i class="fas fa-user"></i>
                                     </div>
-                                    <span class="text-xs text-slate-500 font-medium truncate max-w-[100px]" title="${entry.faculty_name}">
+                                    <span class="text-xs text-slate-500 font-medium truncate max-w-[100px]"
+                                        title="${entry.faculty_name}">
                                         ${entry.faculty_name}
                                     </span>
                                 </div>
-                                 <div class="flex items-center gap-2">
-                                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
                                         <i class="fas fa-map-marker-alt"></i>
                                     </div>
                                     <span class="text-xs text-slate-500 font-medium">
@@ -2345,178 +2178,137 @@ if ($conn) {
                                     </span>
                                 </div>
                             </div>
-                            <button onclick='openEditModal(${JSON.stringify(entry)})' class="absolute top-2 right-2 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition bg-white rounded-full w-6 h-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                            <button onclick='openEditModal(${JSON.stringify(entry)})'
+                                class="absolute top-2 right-2 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition bg-white rounded-full w-6 h-6 shadow-sm border border-slate-100 flex items-center justify-center">
                                 <i class="fas fa-pencil-alt text-[10px]"></i>
                             </button>
                         </div>
-                    </td>
-                 `;
-            } else {
-                return `
-                    <td class="px-4 py-4 align-top h-32 border-r border-slate-100 last:border-r-0">
-                        <div class="h-full flex items-center justify-center rounded-xl border border-dashed border-slate-200/50 bg-slate-50/30">
-                            <span class="text-[10px] font-bold text-slate-300">FREE</span>
-                        </div>
-                    </td>
-                `;
-            }
-        }
+                        </td >
+                        `;} else {
+                        return `
+                        < td class="px-4 py-4 align-top h-32 border-r border-slate-100 last:border-r-0" >
+                            <div
+                                class="h-full flex items-center justify-center rounded-xl border border-dashed border-slate-200/50 bg-slate-50/30">
+                                <span class="text-[10px] font-bold text-slate-300">FREE</span>
+                            </div>
+                        </td >
+                        `;}}
 
-        function renderAllocations(allocations) {
-            const wrapper = document.getElementById('view-allocations-wrapper');
-            const container = document.getElementById('view-allocations-list');
-            wrapper.classList.add('hidden');
-            container.innerHTML = '';
+                        function renderAllocations(allocations) {
+                        const wrapper = document.getElementById('view-allocations-wrapper');
+                        const container = document.getElementById('view-allocations-list');
+                        wrapper.classList.add('hidden');
+                        container.innerHTML = '';
 
-            if (allocations && allocations.length > 0) {
-                wrapper.classList.remove('hidden');
-                allocations.forEach(a => {
-                    const div = document.createElement('div');
-                    div.className = 'p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-4 hover:shadow-md transition bg-white';
-                    div.innerHTML = `
-                        <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm font-bold text-xs uppercase border border-indigo-100">
-                            ${a.subject_code ? a.subject_code.substring(0, 3) : 'SUB'}
-                        </div>
+                        if (allocations && allocations.length > 0) {
+                        wrapper.classList.remove('hidden');
+                        allocations.forEach(a => {
+                        const div = document.createElement('div');
+                        div.className = 'p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-4
+                        hover:shadow-md transition bg-white';
+                        div.innerHTML = `
+                        < div
+                    class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm font-bold text-xs uppercase border border-indigo-100" >
+                        ${ a.subject_code ? a.subject_code.substring(0, 3) : 'SUB' }
+                        </div >
                         <div class="overflow-hidden">
-                           <h5 class="text-sm font-bold text-slate-800 truncate" title="${a.subject_name}">${a.subject_name}</h5>
-                           <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                                <span class="flex items-center gap-1"><i class="fas fa-user-circle"></i> ${a.faculty_name}</span>
+                            <h5 class="text-sm font-bold text-slate-800 truncate" title="${a.subject_name}">
+                                ${a.subject_name}</h5>
+                            <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                <span class="flex items-center gap-1"><i class="fas fa-user-circle"></i>
+                                    ${a.faculty_name}</span>
                                 <span class="w-1 h-1 rounded-full bg-slate-300"></span>
                                 <span class="font-medium text-slate-600">${a.weekly_hours} Hrs</span>
-                           </div>
+                            </div>
                         </div>
                     `;
-                    container.appendChild(div);
-                });
-            }
-        }
+                        container.appendChild(div);});}}
 
-        // --- Existing Functions Below ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+                        // --- Existing Functions Below ---
+                        function showToast(message, type = 'success') {
+                        const container = document.getElementById('toast-container');
+                        const toast = document.createElement('div');
+                        toast.className = `toast ${ type } `;
 
-            let icon = 'fa-check-circle';
-            if (type === 'error') icon = 'fa-exclamation-circle';
-            if (type === 'info') icon = 'fa-info-circle';
+                        let icon = 'fa-check-circle';
+                        if (type === 'error') icon = 'fa-exclamation-circle';
+                        if (type === 'info') icon = 'fa-info-circle';
 
-            toast.innerHTML = `
-                <i class="fas ${icon} ${type === 'success' ? 'text-emerald-500' : type === 'error' ? 'text-red-500' : 'text-blue-500'}"></i>
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-slate-800">${message}</p>
-                </div>
-            `;
-            container.appendChild(toast);
+                        toast.innerHTML = `
+                        < i
+                    class="fas ${icon} ${type === 'success' ? 'text-emerald-500' : type === 'error' ? 'text-red-500' : 'text-blue-500'}" ></i >
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-slate-800">${message}</p>
+                        </div>
+                    `;
+                        container.appendChild(toast);
 
-            setTimeout(() => {
-                toast.classList.add('animate-fade-out');
-                setTimeout(() => toast.remove(), 400);
-            }, 3000);
-        }
+                        setTimeout(() => {
+                        toast.classList.add('animate-fade-out');
+                        setTimeout(() => toast.remove(), 400);}, 3000);}
 
-        // --- New Filter Functions ---
-        function filterSubjectSections() {
-            const deptId = document.getElementById('subject_dept_id').value;
-            const secSel = document.getElementById('subject_section_id');
-            const yearSel = document.getElementById('subject_year');
-            const semSel = document.getElementById('subject_semester');
+                        // --- New Filter Functions ---
+                        function filterSubjectSections() {
+                        const deptId = document.getElementById('subject_dept_id').value;
+                        const secSel = document.getElementById('subject_section_id');
+                        const yearSel = document.getElementById('subject_year');
+                        const semSel = document.getElementById('subject_semester');
 
-            secSel.innerHTML = '<option value="">-- All Sections --</option>';
+                        secSel.innerHTML = '<option value="">-- All Sections --</option>';
 
-            if (!deptId) return;
+                        if (!deptId) return;
 
-            // Filter ALL_SECTIONS
-            if (typeof ALL_SECTIONS !== 'undefined') {
-                const filtered = ALL_SECTIONS.filter(s => s.department_id == deptId);
-                filtered.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.id;
-                    opt.innerText = `${s.section_name} (Yr ${s.year}, Sem ${s.semester})`;
-                    opt.dataset.year = s.year;
-                    opt.dataset.sem = s.semester;
-                    secSel.appendChild(opt);
-                });
-            }
-
-            // Auto-select logic
-            secSel.onchange = function () {
-                const opt = secSel.options[secSel.selectedIndex];
-                if (opt.value && opt.dataset.year) {
-                    yearSel.value = opt.dataset.year;
-                    semSel.value = opt.dataset.sem;
-                }
-            }
-        }
-
-        // Init View Filter
-        document.addEventListener('DOMContentLoaded', () => {
-            const viewDept = document.getElementById('view-dept-id');
-            if (viewDept) {
-                viewDept.addEventListener('change', function () {
-                    const deptId = this.value;
-                    const secSel = document.getElementById('view-section-id');
-                    secSel.innerHTML = '<option value="">Select Section</option>';
-                    if (!deptId) return;
-
-                    if (typeof ALL_SECTIONS !== 'undefined') {
+                        // Filter ALL_SECTIONS
+                        if (typeof ALL_SECTIONS !== 'undefined') {
                         const filtered = ALL_SECTIONS.filter(s => s.department_id == deptId);
                         filtered.forEach(s => {
-                            const opt = document.createElement('option');
-                            opt.value = s.id;
-                            opt.innerText = `${s.section_name} (Yr ${s.year}, Sem ${s.semester})`;
-                            secSel.appendChild(opt);
-                        });
-                    }
-                });
-            }
-        });
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = `${ s.section_name } (Yr ${ s.year }, Sem ${ s.semester })`;
+                        opt.dataset.year = s.year;
+                        opt.dataset.sem = s.semester;
+                        secSel.appendChild(opt);});}
 
+                        // Auto-select logic
+                        secSel.onchange = function () {
+                        const opt = secSel.options[secSel.selectedIndex];
+                        if (opt.value && opt.dataset.year) {
+                        yearSel.value = opt.dataset.year;
+                        semSel.value = opt.dataset.sem;}}}
 
-        function addSubject() {
-            const form = document.getElementById('add-subject-form');
-            const btn = form.querySelector('button[type="submit"]');
-            const originalBtn = btn.innerHTML;
+                        // Init View Filter
+                        document.addEventListener('DOMContentLoaded', () => {
+                        const viewDept = document.getElementById('view-dept-id');
+                        if (viewDept) {
+                        viewDept.addEventListener('change', function () {
+                        const deptId = this.value;
+                        const secSel = document.getElementById('view-section-id');
+                        secSel.innerHTML = '<option value="">Select Section</option>';
+                        if (!deptId) return;
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
+                        if (typeof ALL_SECTIONS !== 'undefined') {
+                        const filtered = ALL_SECTIONS.filter(s => s.department_id == deptId);
+                        filtered.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = `${ s.section_name } (Yr ${ s.year }, Sem ${ s.semester })`;
+                        secSel.appendChild(opt);});}});}});
 
-            const data = new FormData(form);
-
-            fetch('actions/add_subject.php', { method: 'POST', body: data })
-                .then(res => res.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtn;
-
-                    if (res.success) {
-                        showToast(res.message, 'success');
-
-                        const tbody = document.getElementById('subjects-table-body');
-                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No subjects found')) {
-                            tbody.innerHTML = '';
-                        }
-
-                        const sub = res.subject;
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
-
-                        let details = [];
-                        if (sub.batch_year) details.push(sub.batch_year);
-                        if (sub.academic_year) details.push("Yr " + sub.academic_year);
-                        if (sub.semester) details.push("Sem " + sub.semester);
-                        if (sub.section_id) details.push("Sec ID:" + sub.section_id);
 
                         row.innerHTML = `
-                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${sub.code}</td>
-                            <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
-                            <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
-                            <td class="px-6 py-4 text-sm text-slate-500">${details.join(' • ')}</td>
-                            <td class="px-6 py-4 text-right">
-                                <button onclick='openEditSubjectModal(${JSON.stringify(sub)})' class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
-                            </td>
-                        `;
+                    < td class="px-6 py-4 text-sm font-bold text-slate-700" > ${ sub.code }</td >
+                        <td class="px-6 py-4 text-sm text-slate-600">${sub.name}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
+                        <td class="px-6 py-4 text-sm text-slate-500">${details.join(' • ')}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button
+                                class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i
+                                    class="fas fa-edit"></i></button>
+                            <button onclick="deleteSubject(${sub.id}, this)"
+                                class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i
+                                    class="fas fa-trash"></i></button>
+                        </td>
+                `;
                         tbody.insertBefore(row, tbody.firstChild);
                         form.reset();
 
@@ -2524,620 +2316,285 @@ if ($conn) {
                         // 1. Update existing selects in the modal
                         const allocSelects = document.querySelectorAll('select[name="subject_id[]"]');
                         allocSelects.forEach(sel => {
-                            const opt = document.createElement('option');
-                            opt.value = sub.id;
-                            opt.innerText = `${sub.name} (${sub.code})`;
-                            sel.appendChild(opt);
-                        });
+                        const opt = document.createElement('option');
+                        opt.value = sub.id;
+                        opt.innerText = `${ sub.name } (${ sub.code })`;
+                        sel.appendChild(opt);});
 
                         // 2. Update global ALL_SUBJECTS array if it exists (for robustness)
                         if (typeof ALL_SUBJECTS !== 'undefined') {
-                            ALL_SUBJECTS.push(sub);
-                        }
-                    } else {
-                        showToast(res.message, 'error');
-                        if (res.message && res.message.includes('Unauthorized')) {
-                            window.location.href = 'admin_login.php';
-                        }
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtn;
-                    console.error(err);
-                    showToast('Error adding subject. Check console.', 'error');
-                });
-        }
+                        ALL_SUBJECTS.push(sub);}
+                        const row = btn.closest('tr');
+                        const originalHTML = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        function addFaculty() {
-            const form = document.getElementById('add-faculty-form');
-            const data = new FormData(form);
-
-            fetch('actions/add_faculty.php', { method: 'POST', body: data })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        alert(res.message);
+                        const fd = new FormData();
+                        fd.append('id', id);
+                        fetch('actions/delete_faculty.php', { method: 'POST', body: fd})
+                        .then(r => r.json())
+                        .then(res => {
+                        if (res.success) {
+                        showToast(res.message, 'success');
+                        row.classList.add('animate-fade-out');
+                        setTimeout(() => {
+                        row.remove();
                         const tbody = document.getElementById('faculty-table-body');
-                        if (tbody.rows.length === 1 && tbody.rows[0].innerText.includes('No faculties found')) {
-                            tbody.innerHTML = '';
-                        }
-                        const fac = res.faculty;
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition animate-fade-in';
-                        row.innerHTML = `
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
-                                        ${fac.name.substring(0, 2)}
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-bold text-slate-800">${fac.name}</p>
-                                        <p class="text-[10px] text-slate-400">${fac.email}</p>
-                                    </div>
-                                </div>
+                        if (tbody.children.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No faculties found.
                             </td>
-                            <td class="px-6 py-4 text-sm font-bold text-slate-700">${data.get('max_hours_week') || 20}</td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-slate-400 hover:text-indigo-600 mx-2" title="Manage Constraints"><i class="fas fa-sliders-h"></i></button>
-                                <button onclick="deleteFaculty(${fac.id}, this)" class="text-slate-400 hover:text-red-500 mx-2" title="Delete Faculty"><i class="fas fa-trash"></i></button>
-                            </td>
-                        `;
-                        tbody.insertBefore(row, tbody.firstChild);
-                        form.reset();
-                        document.getElementById('faculty-modal').classList.add('hidden');
-                    } else {
-                        alert(res.message);
-                    }
-                });
-        }
-
-        function deleteFaculty(id, btn) {
-            if (!confirm('Are you sure you want to delete this faculty member?')) return;
-
-            const row = btn.closest('tr');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            const fd = new FormData();
-            fd.append('id', id);
-            fetch('actions/delete_faculty.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        row.classList.add('animate-fade-out');
-                        setTimeout(() => {
-                            row.remove();
-                            const tbody = document.getElementById('faculty-table-body');
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">No faculties found.</td></tr>';
-                            }
-                        }, 400);
-                    } else {
+                        </tr>';}}, 400);} else {
                         btn.disabled = false;
                         btn.innerHTML = originalHTML;
-                        showToast(res.message, 'error');
-                    }
-                });
-        }
+                        showToast(res.message, 'error');}});}
 
-        function deleteSubject(id, btn) {
-            if (!confirm('Are you sure you want to delete this subject?')) return;
+                        function deleteSubject(id, btn) {
+                        if (!confirm('Are you sure you want to delete this subject?')) return;
 
-            const row = btn.closest('tr');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        const row = btn.closest('tr');
+                        const originalHTML = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-            const fd = new FormData();
-            fd.append('id', id);
+                        const fd = new FormData();
+                        fd.append('id', id);
 
-            fetch('actions/delete_subject.php', { method: 'POST', body: fd })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
+                        fetch('actions/delete_subject.php', { method: 'POST', body: fd})
+                        .then(res => res.json())
+                        .then(res => {
+                        if (res.success) {
                         showToast(res.message, 'success');
                         row.classList.add('animate-fade-out');
                         setTimeout(() => {
-                            row.remove();
-                            const tbody = document.getElementById('subjects-table-body');
-                            if (tbody.children.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No subjects found.</td></tr>';
-                            }
-                        }, 400);
-                    } else {
+                        row.remove();
+                        const tbody = document.getElementById('subjects-table-body');
+                        if (tbody.children.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No subjects found.</td></tr>';}}, 400);} else {
                         btn.disabled = false;
                         btn.innerHTML = originalHTML;
                         showToast(res.message, 'error');
                         if (res.message && res.message.includes('Unauthorized')) {
-                            window.location.href = 'admin_login.php';
-                        }
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    console.error(err);
-                    showToast('Error deleting subject.', 'error');
-                });
-        }
+                        window.location.href = 'admin_login.php';}}})
+                        .catch(err => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        console.error(err);
+                        showToast('Error deleting subject.', 'error');});}
 
-        function openEditSubjectModal(sub) {
-            const modal = document.getElementById('edit-subject-modal');
-            const form = document.getElementById('edit-subject-form');
 
-            // Populate form
-            document.getElementById('edit_subject_id').value = sub.id;
-            document.getElementById('edit_subject_name').value = sub.name;
-            document.getElementById('edit_subject_code').value = sub.code;
-            document.getElementById('edit_subject_credits').value = sub.credits;
-            document.getElementById('edit_subject_dept').value = sub.department_id;
-            document.getElementById('edit_subject_batch').value = sub.batch_year || '';
+                        function updateProfile(form) {
+                        const btn = form.querySelector('button[type="submit"]');
+                        const originalHTML = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
-            // Optional Fields
-            if (sub.academic_year) document.getElementById('edit_subject_year').value = sub.academic_year;
-            if (sub.semester) document.getElementById('edit_subject_sem').value = sub.semester;
-            if (sub.section_id) document.getElementById('edit_subject_sec').value = sub.section_id;
+                        const fd = new FormData(form);
+                        fetch('actions/update_profile.php', { method: 'POST', body: fd})
+                        .then(r => r.json())
+                        .then(res => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        if (res.success) {
+                        showToast(res.message, 'success');} else {
+                        showToast(res.message, 'error');}})
+                        .catch(e => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast('Connection error', 'error');});}
 
-            modal.classList.remove('hidden');
-        }
+                        function changePassword(form) {
+                        const btn = form.querySelector('button[type="submit"]');
+                        const originalHTML = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
 
-        function updateSubject() {
-            const form = document.getElementById('edit-subject-form');
-            const btn = document.getElementById('btn-update-subject');
-            const originalHTML = btn.innerHTML;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-            const fd = new FormData(form);
-
-            fetch('actions/update_subject.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-
-                    if (res.success) {
+                        const fd = new FormData(form);
+                        fetch('actions/change_password.php', { method: 'POST', body: fd})
+                        .then(r => r.json())
+                        .then(res => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        if (res.success) {
                         showToast(res.message, 'success');
-                        document.getElementById('edit-subject-modal').classList.add('hidden');
-                        setTimeout(() => location.reload(), 1000); // Reload to reflect changes
-                    } else {
-                        showToast(res.message, 'error');
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    showToast('Error updating subject', 'error');
-                });
-        }
+                        form.reset();} else {
+                        showToast(res.message, 'error');}})
+                        .catch(e => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                        showToast('Connection error', 'error');});}
 
+                        // Optimized PDF Export
+                        async function downloadTimetablePDF() {
+                        const { jsPDF} = window.jspdf;
+                        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
+                        // Check if table is visible
+                        const container = document.getElementById('view-grid-container');
+                        if (container.classList.contains('hidden')) {
+                        showToast('Please load a timetable first!', 'error');
+                        return;}
 
-        function updateProfile(form) {
-            const btn = form.querySelector('button[type="submit"]');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                        // Get Title Info
+                        const deptSelect = document.getElementById('view-dept-id');
+                        const sectionSelect = document.getElementById('view-section-id');
 
-            const fd = new FormData(form);
-            fetch('actions/update_profile.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                    } else {
-                        showToast(res.message, 'error');
-                    }
-                })
-                .catch(e => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    showToast('Connection error', 'error');
-                });
-        }
+                        const deptName = deptSelect.options[deptSelect.selectedIndex].text.trim();
+                        const sectionName = sectionSelect.options[sectionSelect.selectedIndex].text.trim();
 
-        function changePassword(form) {
-            const btn = form.querySelector('button[type="submit"]');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                        doc.setFontSize(22);
+                        doc.setTextColor(40);
+                        doc.text('Class Timetable', 14, 15);
 
-            const fd = new FormData(form);
-            fetch('actions/change_password.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        form.reset();
-                    } else {
-                        showToast(res.message, 'error');
-                    }
-                })
-                .catch(e => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    showToast('Connection error', 'error');
-                });
-        }
-        // PDF Export
-        async function downloadTimetablePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+                        doc.setFontSize(12);
+                        doc.setTextColor(100);
+                        doc.text(`Department: ${ deptName } `, 14, 25);
+                        doc.text(`Section: ${ sectionName } `, 14, 32);
+                        doc.text(`Generated: ${ new Date().toLocaleDateString() } `, 250, 32, { align: 'right'});
 
-            const deptSel = document.getElementById('view-dept-id');
-            const deptName = deptSel.options[deptSel.selectedIndex].text;
-            const versionSel = document.getElementById('view-version-id');
-            const verName = versionSel.options[versionSel.selectedIndex].text;
+                        // Prepare Data for AutoTable
+                        // We manually parse to ensure clean output, as HTML parsing of complex divs can be messy
+                        const table = container.querySelector('table');
+                        const rows = [];
+                        const headers = ['Day / Period', '1', '2', '3', 'Lunch', '4', '5', '6', '7']; // Simplified
+                        headers
 
-            doc.setFontSize(18);
-            doc.text("Master Timetable - " + deptName, 14, 22);
-            doc.setFontSize(11);
-            doc.text("Version: " + verName, 14, 30);
-            doc.text("Generated: " + new Date().toLocaleDateString(), 14, 36);
+                        // Iterate Rows
+                        const trs = table.querySelectorAll('tbody tr');
+                        trs.forEach(tr => {
+                        const rowData = [];
+                        // Day
+                        rowData.push(tr.cells[0].innerText.trim());
 
-            const table = document.querySelector('#view-grid-container table');
+                        // Periods
+                        for(let i=1; i<tr.cells.length; i++) { let cellText=tr.cells[i].innerText.trim(); // Clean up
+                            newlines cellText=cellText.replace(/\n\s*\n/g, ', ' ); rowData.push(cellText);}
+                            rows.push(rowData);}); doc.autoTable({ head: [headers], body: rows, startY: 40,
+                            theme: 'grid' , headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold'},
+                            styles: { fontSize: 10, cellPadding: 4, valign: 'middle' , overflow: 'linebreak'},
+                            columnStyles: { 0: { fontStyle: 'bold' , fillColor: [248, 250, 252]}}, didDrawPage:
+                            function (data) { doc.setFontSize(10); doc.text('Generated by AutoTime',
+                            data.settings.margin.left, doc.internal.pageSize.height - 10);}});
+                            doc.save(`Timetable_${ sectionName.replace(/[^a-z0-9]/gi, '_') }.pdf`); showToast('PDF
+                            Downloaded!', 'success' );} 
+ // --- Manual Override Logic --- 
+ let currentEditEntryId=null;
+                            function openEditModal(entry) { currentEditEntryId=entry.id; 
+ // Populate Dropdowns 
+ const
+                            subSel=document.querySelector('select[name="edit_subject_id" ]'); const
+                            facSel=document.querySelector('select[name="edit_faculty_id" ]'); const
+                            roomSel=document.querySelector('select[name="edit_room_id" ]'); const
+                            viewDeptId=document.getElementById('view-dept-id').value; // Subjects
+            subSel.innerHTML = '';
+            ALL_SUBJECTS.forEach(s => {
+                // Filter subjects by Department if needed (optional)
+                if (viewDeptId && s.department_id != viewDeptId && s.id != entry.subject_id) return;
 
-            if (!table) {
-                alert("Please load a timetable first.");
-                return;
-            }
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.text = `${ s.name } (${ s.code })`;
+                if (s.id == entry.subject_id) opt.selected = true;
+                subSel.appendChild(opt);});
 
-            doc.autoTable({
-                html: table,
-                startY: 45,
-                theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2 },
-                headStyles: { fillColor: [16, 185, 129] }, // Emerald color
-                didParseCell: function (data) {
-                    // Start from 1 because index 0 is time column
-                    if (data.section === 'body' && data.column.index > 0) {
-                        // Clean up cell text (remove icons etc if needed)
-                        let text = data.cell.raw.innerText || "";
-                        // Replace newlines with comma for compactness if needed, or keep as is
-                        data.cell.text = text.trim();
-                    }
-                }
-            });
+            // Faculties
+            facSel.innerHTML = '';
+            ALL_FACULTIES.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.text = f.name;
+                if (f.id == entry.faculty_id) opt.selected = true;
+                facSel.appendChild(opt);});
 
-            doc.save(`Timetable_${deptName.replace(/\s+/g, '_')}.pdf`);
-        }
-    </script>
-    async function downloadTimetablePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+            // Rooms
+            roomSel.innerHTML = '<option value="">No Room</option>';
+            ALL_ROOMS.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.text = `${ r.name } (${ r.type })`;
+                if (r.id == entry.room_id) opt.selected = true;
+                roomSel.appendChild(opt);});
 
-    // Check if table is visible
-    const container = document.getElementById('view-grid-container');
-    if (container.classList.contains('hidden')) {
-    showToast('Please load a timetable first!', 'error');
-    return;
-    }
-
-    // Get Title Info
-    const deptSelect = document.getElementById('view-dept-id');
-    const sectionSelect = document.getElementById('view-section-id');
-
-    const deptName = deptSelect.options[deptSelect.selectedIndex].text.trim();
-    const sectionName = sectionSelect.options[sectionSelect.selectedIndex].text.trim();
-
-    doc.setFontSize(22);
-    doc.setTextColor(40);
-    doc.text('Class Timetable', 14, 15);
-
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Department: ${deptName}`, 14, 25);
-    doc.text(`Section: ${sectionName}`, 14, 32);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 250, 32, { align: 'right' });
-
-    // Prepare Data for AutoTable
-    // We manually parse to ensure clean output, as HTML parsing of complex divs can be messy
-    const table = container.querySelector('table');
-    const rows = [];
-    const headers = ['Day / Period', '1', '2', '3', 'Lunch', '4', '5', '6', '7']; // Simplified headers
-
-    // Iterate Rows
-    const trs = table.querySelectorAll('tbody tr');
-    trs.forEach(tr => {
-    const rowData = [];
-    // Day
-    rowData.push(tr.cells[0].innerText.trim());
-
-    // Periods
-    for(let i=1; i<tr.cells.length; i++) { let cellText=tr.cells[i].innerText.trim(); // Clean up newlines from the UI
-        card layout to make it comma separated or just clean space cellText=cellText.replace(/\n\s*\n/g, '\n' ); //
-        Remove multiple empty lines rowData.push(cellText); } rows.push(rowData); }); doc.autoTable({ head: [headers],
-        body: rows, startY: 40, theme: 'grid' , headStyles: { fillColor: [79, 70, 229], // Indigo 600 textColor: 255,
-        fontStyle: 'bold' }, styles: { fontSize: 10, cellPadding: 4, valign: 'middle' , overflow: 'linebreak' },
-        columnStyles: { 0: { fontStyle: 'bold' , fillColor: [248, 250, 252] } // First Col (Day) }, didDrawPage:
-        function (data) { // Footer doc.setFontSize(10); doc.text('Generated by AutoTime', data.settings.margin.left,
-        doc.internal.pageSize.height - 10); } }); doc.save(`Timetable_${sectionName.replace(/[^a-z0-9]/gi, '_' )}.pdf`);
-        showToast('PDF Downloaded!', 'success' ); } // --- Manual Override Logic --- let currentEditEntryId=null;
-        function openEditModal(entry) { currentEditEntryId=entry.id; // Populate Dropdowns const
-        subSel=document.querySelector('select[name="edit_subject_id" ]'); const
-        facSel=document.querySelector('select[name="edit_faculty_id" ]'); const
-        roomSel=document.querySelector('select[name="edit_room_id" ]'); const
-        viewDeptId=document.getElementById('view-dept-id').value; subSel.innerHTML='' ; ALL_SUBJECTS.forEach(s=> {
-        if (viewDeptId && s.department_id != viewDeptId) return;
-
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.text = `${s.name} (${s.code})`;
-        if(s.id == entry.subject_id) opt.selected = true;
-        subSel.appendChild(opt);
-        });
-
-        facSel.innerHTML = '';
-        ALL_FACULTIES.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.id;
-        opt.text = f.name;
-        if(f.id == entry.faculty_id) opt.selected = true;
-        facSel.appendChild(opt);
-        });
-
-        roomSel.innerHTML = '<option value="">No Room</option>';
-        ALL_ROOMS.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.text = `${r.name} (${r.type})`;
-        if(r.id == entry.room_id) opt.selected = true;
-        roomSel.appendChild(opt);
-        });
-
-        document.getElementById('edit-entry-modal').classList.remove('hidden');
-        }
+            document.getElementById('edit-entry-modal').classList.remove('hidden');}
 
         function saveEditEntry(force = false) {
-        const fd = new FormData(document.getElementById('edit-entry-form'));
-        fd.append('entry_id', currentEditEntryId);
-        if(force) fd.append('force', 'true');
+            const fd = new FormData(document.getElementById('edit-entry-form'));
+            fd.append('entry_id', currentEditEntryId);
+            if (force) fd.append('force', 'true');
 
-        const btn = document.getElementById('btn-save-edit');
-        const original = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const btn = document.getElementById('btn-save-edit');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        fetch('actions/update_timetable_entry.php', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(d => {
-        btn.disabled = false;
-        btn.innerHTML = original;
+            fetch('actions/update_timetable_entry.php', { method: 'POST', body: fd})
+                .then(r => r.json())
+                .then(d => {
+                    btn.disabled = false;
+                            btn.innerHTML = original;
 
-        if(d.success) {
-        showToast(d.message, 'success');
-        document.getElementById('edit-entry-modal').classList.add('hidden');
-        loadTimetableGrid(); // Refresh
-        } else if (d.status === 'conflict') {
-        if(confirm("Conflict Detected:\n" + d.message + "\n\nDo you want to FORCE this assignment anyway?")) {
-        saveEditEntry(true);
-        }
-        } else {
-        showToast(d.message, 'error');
-        }
-        });
-        }
+                            if(d.success) {
+                            showToast(d.message, 'success');
+                            document.getElementById('edit-entry-modal').classList.add('hidden');
+                            loadTimetableGrid(); // Refresh} else if (d.status === 'conflict') {
+                            if(confirm("Conflict Detected:\n" + d.message + "\n\nDo you want to FORCE this assignment anyway?")) {
+                            saveEditEntry(true);}} else {
+                            showToast(d.message, 'error');}});}
 
-        // --- Reports Logic ---
-        function loadWorkloadReport() {
+                                // --- Reports Logic ---
+    function loadWorkloadReport() {
         const container = document.getElementById('workload-container');
-        if(!container) return; // Guard clause
+        if (!container) return; // Guard clause
 
         container.innerHTML = '<div class="text-slate-400 text-sm italic">Loading workload data...</div>';
 
         fetch('actions/fetch_workload.php')
-        .then(r => r.json())
-        .then(res => {
-        if(res.success) {
-        renderWorkload(res.data);
-        } else {
-        container.innerHTML = `<div class="text-red-500 text-sm font-bold">${res.message}</div>`;
-        }
-        })
-        .catch(err => {
-        container.innerHTML = `<div class="text-red-500 text-sm">Error: ${err.message}</div>`;
-        });
-        }
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    renderWorkload(res.data);} else {
+                    container.innerHTML = `< div class="text-red-500 text-sm font-bold" > ${ res.message }</div > `;}})
+            .catch(err => {
+                container.innerHTML = `< div class="text-red-500 text-sm" > Error: ${ err.message }</div > `;});}
 
-        function renderWorkload(data) {
+    function renderWorkload(data) {
         const container = document.getElementById('workload-container');
-        if(!data || data.length === 0) {
-        container.innerHTML = '<div class="text-slate-400">No data found.</div>';
-        return;
-        }
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="text-slate-400">No data found.</div>';
+            return;}
 
         let html = '';
         const maxLoad = 20; // Assumption for bar scaling
 
         data.forEach(fac => {
-        const hours = parseInt(fac.total_hours);
-        const percent = Math.min((hours / maxLoad) * 100, 100);
+            const hours = parseInt(fac.total_hours);
+            const percent = Math.min((hours / maxLoad) * 100, 100);
 
-        let colorClass = 'bg-emerald-500';
-        if(hours > 18) colorClass = 'bg-red-500'; // Overload
-        else if (hours < 12) colorClass='bg-amber-400' ; // Underload html +=` <div
-            class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-fade-in">
-            <div
-                class="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-slate-600 text-xs shadow-sm">
-                ${fac.name.substring(0, 2).toUpperCase()}
-            </div>
-            <div class="flex-1">
-                <div class="flex justify-between mb-1">
-                    <h4 class="font-bold text-slate-700 text-sm">${fac.name} <span
-                            class="text-slate-400 font-normal text-xs">(${fac.dept_name || 'N/A'})</span></h4>
-                    <span class="font-bold text-slate-800 text-sm">${hours} Hrs</span>
-                </div>
-                <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div class="h-full ${colorClass}" style="width: ${percent}%"></div>
-                </div>
-            </div>
-            </div>
-            `;
-            });
-            container.innerHTML = html;
-            }
+            let colorClass = 'bg-emerald-500';
+            if (hours > 18) colorClass = 'bg-red-500';
+            else if (hours < 12) colorClass = 'bg-amber-400';
 
-            // --- Faculty View Logic ---
-            function loadFacultyTimetable() {
-            const vId = document.getElementById('view-fac-version-id').value ||
-            document.getElementById('view-version-id').value;
-            const fId = document.getElementById('view-faculty-id').value;
-
-            // Sync versions if needed
-            if (!document.getElementById('view-fac-version-id').value && vId) {
-            // Try to populate if empty
-            loadViewVersions();
-            // Small delay or just proceed
-            }
-
-            if (!vId || !fId) {
-            showToast('Please select Version and Faculty', 'info');
-            return;
-            }
-
-            const btn = document.querySelector('button[onclick="loadFacultyTimetable()"]');
-            const originalInfo = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-
-            fetch(`actions/fetch_faculty_timetable.php?version_id=${vId}&faculty_id=${fId}`)
-            .then(r => r.json())
-            .then(d => {
-            btn.disabled = false;
-            btn.innerHTML = originalInfo;
-
-            if (d.success) {
-            renderFacultyGrid(d.entries);
-            renderFacultyAllocations(d.allocations);
-            document.getElementById('view-fac-allocations-wrapper').classList.remove('hidden');
-            } else {
-            showToast(d.message, 'error');
-            }
-            });
-            }
-
-            function renderFacultyGrid(entries) {
-            const tbody = document.getElementById('view-fac-grid-body');
-            const container = document.getElementById('view-fac-grid-container');
-            const empty = document.getElementById('view-fac-empty-state');
-
-            tbody.innerHTML = '';
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-            days.forEach(day => {
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 transition border-b border-slate-50 last:border-b-0';
-            let html = `<td class="px-6 py-6 font-bold text-slate-800 bg-white sticky left-0 border-r border-slate-100">
-                ${day}</td>`;
-
-            for (let i = 1; i <= 4; i++) { html +=getFacultyCellHtml(day, i, entries); } html +=`<td
-                class="px-2 py-4 text-center bg-slate-50/50">
-                <div class="h-full w-px mx-auto bg-slate-200 dashed"></div>
-                </td>`;
-                for (let i = 5; i <= 7; i++) { html +=getFacultyCellHtml(day, i, entries); } tr.innerHTML=html;
-                    tbody.appendChild(tr); }); container.classList.remove('hidden'); empty.classList.add('hidden'); }
-                    function getFacultyCellHtml(day, period, entries) { const key=`${day}-${period}`; const
-                    entry=entries[key]; if (entry) { return ` <td
-                    class="px-4 py-4 align-top h-32 w-48 border-r border-slate-100 last:border-r-0">
-                    <div
-                        class="h-full flex flex-col justify-between group cursor-pointer hover:bg-white p-2 rounded-xl transition border border-transparent hover:border-indigo-100 hover:shadow-sm">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-1 block">
-                                ${entry.subject_code}
-                            </span>
-                            <h4 class="text-sm font-bold text-slate-800 leading-tight mb-2 line-clamp-2"
-                                title="${entry.subject_name}">
-                                ${entry.subject_name}
-                            </h4>
+            html += `
+                    < div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-fade-in" >
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-slate-600 text-xs shadow-sm">
+                        ${fac.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between mb-1">
+                            <h4 class="font-bold text-slate-700 text-sm">${fac.name} <span class="text-slate-400 font-normal text-xs">(${fac.dept_name || 'N/A'})</span></h4>
+                            <span class="font-bold text-slate-800 text-sm">${hours} Hrs</span>
                         </div>
-                        <div class="border-t border-slate-100 pt-2 mt-2">
-                            <div class="flex items-center gap-2 mb-1">
-                                <div
-                                    class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <span class="text-xs text-slate-500 font-medium truncate max-w-[100px]"
-                                    title="${entry.section}">
-                                    ${entry.section}
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </div>
-                                <span class="text-xs text-slate-500 font-medium">
-                                    ${entry.room || 'N/A'}
-                                </span>
-                            </div>
+                        <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full ${colorClass}" style="width: ${percent}%"></div>
                         </div>
                     </div>
-                    </td>
-                    `;
-                    } else {
-                    return `
-                    <td class="px-4 py-4 align-top h-32 border-r border-slate-100 last:border-r-0">
-                        <div
-                            class="h-full rounded-xl border border-dashed border-slate-100 flex items-center justify-center text-slate-200">
-                            <span class="text-xs">Free</span>
-                        </div>
-                    </td>`;
-                    }
-                    }
+                </div >
+            `;});
+        container.innerHTML = html;}
 
-                    // Faculty Allocations Renderer (Clean Version)
-                    function renderFacultyAllocations(allocations) {
-                    const containerId = 'view-fac-allocations-list';
-                    const container = document.getElementById(containerId);
-                    if (!container) return;
-                    container.innerHTML = '';
-
-                    if (!allocations || allocations.length === 0) {
-                    container.innerHTML = '<p class="col-span-3 text-center text-slate-400">No subjects allocated.</p>';
-                    return;
-                    }
-
-                    allocations.forEach(a => {
-                    const card = document.createElement('div');
-                    card.className = 'p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start
-                    justify-between hover:shadow-sm transition';
-
-                    // Safe property access
-                    const subjectCode = a.subject_code || 'N/A';
-                    const subjectName = a.subject_name || 'Unknown Subject';
-                    const sectionDisplay = a.section || a.section_name || 'All Sections';
-                    const hours = a.weekly_hours || 0;
-
-                    card.innerHTML = `
-                    <div>
-                        <span
-                            class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1 block">${subjectCode}</span>
-                        <h5 class="font-bold text-slate-800 text-sm mb-1">${subjectName}</h5>
-                        <div class="flex gap-2 text-xs text-slate-500">
-                            <span
-                                class="bg-white px-2 py-0.5 rounded border border-slate-200 text-[10px] font-bold uppercase">${sectionDisplay}</span>
-                            <span
-                                class="bg-white px-2 py-0.5 rounded border border-slate-200 text-[10px] font-bold">${hours}
-                                Hrs/Wk</span>
-                        </div>
-                    </div>
-                    `;
-                    container.appendChild(card);
-                    });
-                    document.getElementById(containerId.replace('list', 'wrapper')).classList.remove('hidden');
-                    }
-                    // Lazy load trigger
-                    window.addEventListener('hashchange', () => {
-                    if(window.location.hash === '#reports') loadWorkloadReport();});
-                    </script>
+    // Lazy load trigger
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#reports') loadWorkloadReport();});
+    </script>
 </body>
 
 </html>

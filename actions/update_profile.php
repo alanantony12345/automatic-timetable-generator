@@ -7,13 +7,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
+header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
     $id = $_SESSION['user_id'];
 
     if (empty($name) || empty($email)) {
-        header("Location: ../admin_dashboard.php?error=empty_fields");
+        echo json_encode(['success' => false, 'message' => 'All fields are required.']);
         exit();
     }
 
@@ -22,9 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($stmt->execute()) {
         $_SESSION['user_name'] = $name; // Update session
-        header("Location: ../admin_dashboard.php?success=profile_updated");
+        echo json_encode(['success' => true, 'message' => 'Profile updated successfully!']);
     } else {
-        header("Location: ../admin_dashboard.php?error=update_failed");
+        echo json_encode(['success' => false, 'message' => 'Database update failed.']);
     }
     $stmt->close();
 }

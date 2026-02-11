@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($email) || empty($password)) {
         $error = "Please fill in all fields.";
     } else {
-        // Prepare statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ?");
+        // Prepare statement to prevent SQL injection - Restrict to Student
+        $stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ? AND role = 'Student'");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
@@ -43,11 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_name'] = $name;
                 $_SESSION['role'] = $role;
 
+                // Redirect to Student Dashboard (or general dashboard if same)
                 $redirect_url = 'dashboard.php';
-                if (strcasecmp($role, 'Admin') === 0)
-                    $redirect_url = 'admin_dashboard.php';
-                elseif (strcasecmp($role, 'Faculty') === 0)
-                    $redirect_url = 'faculty_dashboard.php';
 
                 echo "<script>alert('Login Successful! Redirecting...'); window.location.href='" . $redirect_url . "';</script>";
                 exit();
@@ -55,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error = "Invalid password.";
             }
         } else {
-            $error = "No account found with that email.";
+            $error = "No student account found with that email.";
         }
         $stmt->close();
     }

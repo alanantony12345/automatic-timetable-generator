@@ -344,10 +344,26 @@ if ($conn) {
                     <i class="fas fa-sitemap"></i> Class & Section
                 </a>
 
-                <a href="#" onclick="showSection('dept-manage')" id="link-dept-manage"
-                    class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
-                    <i class="fas fa-building"></i> Departments
-                </a>
+                <div class="relative group">
+                    <button id="link-dept-manage" onclick="showSection('dept-manage')"
+                        class="w-full sidebar-item flex items-center justify-between px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
+                        <div class="flex items-center gap-3"><i class="fas fa-building"></i> Departments</div>
+                        <i class="fas fa-chevron-right text-[10px] transition-transform group-hover:rotate-90"></i>
+                    </button>
+                    <div class="hidden group-hover:block pl-11 pb-2 space-y-1">
+                        <a href="javascript:void(0)" onclick="showSection('dept-manage')"
+                            class="block py-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition">Manage
+                            All</a>
+                        <?php foreach ($departments_list as $dept): ?>
+                            <a href="javascript:void(0)"
+                                onclick="showSection('dept-manage'); /* Future: Filter by this dept */"
+                                class="block py-1.5 text-xs text-slate-500 hover:text-indigo-600 transition truncate"
+                                title="<?php echo htmlspecialchars($dept['name']); ?>">
+                                <?php echo htmlspecialchars($dept['name']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
                 <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-6 mb-2 ml-4">Management</p>
                 <a href="#" onclick="showSection('faculty-manage')" id="link-faculty-manage"
@@ -391,8 +407,6 @@ if ($conn) {
                     class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-600 mb-1">
                     <i class="fas fa-sync"></i> Regenerate
                 </a>
-
-
 
                 <div class="relative group">
                     <button
@@ -606,24 +620,44 @@ if ($conn) {
                                 <select name="department_id" id="subject_dept_id" required
                                     onchange="filterSubjectSections()"
                                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="">Select Dept</option>
-                                    <?php if (empty($departments_list)): ?>
-                                        <option value="" disabled>No departments found</option>
-                                    <?php else: ?>
-                                        <?php foreach ($departments_list as $dept): ?>
-                                            <option value="<?php echo $dept['id']; ?>">
-                                                <?php echo htmlspecialchars($dept['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <option value="">-- Select Department --</option>
+                                    <?php foreach ($departments_list as $dept): ?>
+                                        <option value="<?php echo $dept['id']; ?>">
+                                            <?php echo htmlspecialchars($dept['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
-                                <?php if (empty($departments_list)): ?>
-                                    <p class="text-xs text-red-500 mt-1">
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                                        No departments available. <a href="#" onclick="showSection('dept-manage')"
-                                            class="text-indigo-600 underline">Add departments first</a>
-                                    </p>
-                                <?php endif; ?>
+                            </div>
+                            <!-- New Fields -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Academic
+                                    Year</label>
+                                <select name="academic_year" id="subject_year" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Semester</label>
+                                <select name="semester" id="subject_semester" required
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">Select Sem</option>
+                                    <?php for ($i = 1; $i <= 8; $i++)
+                                        echo "<option value='$i'>Sem $i</option>"; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Section
+                                    (Optional)</label>
+                                <select name="section_id" id="subject_section_id"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 transition">
+                                    <option value="">-- All Sections --</option>
+                                    <!-- Populated by JS -->
+                                </select>
                             </div>
                             <div class="md:col-span-6 flex justify-end">
                                 <button type="submit"
@@ -674,8 +708,7 @@ if ($conn) {
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <button onclick='openEditSubjectModal(<?php echo json_encode($sub); ?>)'
-                                                    class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i
+                                                <button class="text-slate-400 hover:text-indigo-600 mx-2"><i
                                                         class="fas fa-edit"></i></button>
                                                 <button onclick="deleteSubject(<?php echo $sub['id']; ?>, this)"
                                                     class="text-slate-400 hover:text-red-500 mx-2"><i
@@ -1144,91 +1177,6 @@ if ($conn) {
                 </div>
             </section>
 
-            <!-- View Timetable Faculty Wise -->
-            <section id="view-fac-wise-section" class="hidden space-y-8">
-                <!-- Wrapper -->
-                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 class="text-2xl font-bold text-slate-800">View Faculty Timetable</h3>
-                            <p class="text-slate-400 text-sm">View allocations and schedule for a specific faculty
-                                member.</p>
-                        </div>
-                        <!-- Version Select (Reused/Synced) -->
-                        <div class="flex gap-2">
-                            <select id="view-fac-version-id"
-                                class="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Select Version...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Filters -->
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <div class="md:col-span-3">
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Faculty Member</label>
-                            <select id="view-faculty-id"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">
-                                <option value="">Select Faculty</option>
-                                <?php foreach ($all_faculties_list as $f): ?>
-                                    <option value="<?php echo $f['id']; ?>"><?php echo htmlspecialchars($f['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button onclick="loadFacultyTimetable()"
-                                class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
-                                <i class="fas fa-search mr-2"></i> Load Schedule
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Grid Container -->
-                    <div id="view-fac-grid-container" class="overflow-x-auto rounded-xl border border-slate-200 hidden">
-                        <table class="w-full text-sm text-left">
-                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th class="px-6 py-4 font-bold w-32 bg-slate-50 sticky left-0 z-10">Day / Period
-                                    </th>
-                                    <th class="px-6 py-4 text-center">1</th>
-                                    <th class="px-6 py-4 text-center">2</th>
-                                    <th class="px-6 py-4 text-center">3</th>
-                                    <th class="px-6 py-4 text-center">4</th>
-                                    <th class="px-6 py-4 text-center bg-slate-100/50">LUNCH</th>
-                                    <th class="px-6 py-4 text-center">5</th>
-                                    <th class="px-6 py-4 text-center">6</th>
-                                    <th class="px-6 py-4 text-center">7</th>
-                                </tr>
-                            </thead>
-                            <tbody id="view-fac-grid-body" class="divide-y divide-slate-100">
-                                <!-- JS Populated -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="view-fac-empty-state" class="py-20 text-center">
-                        <div
-                            class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <p class="text-slate-400 font-medium">Select a faculty to view their schedule.</p>
-                    </div>
-
-                    <!-- Allocations Summary -->
-                    <div id="view-fac-allocations-wrapper"
-                        class="hidden mt-8 border-t border-slate-100 pt-8 animate-fade-in">
-                        <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <i class="fas fa-list-ul text-indigo-500"></i> Allocated Subjects
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                            id="view-fac-allocations-list">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- ADMIN PROFILE SECTION -->
             <section id="profile-section" class="hidden space-y-8 animate-fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -1587,112 +1535,6 @@ if ($conn) {
 
     </main>
 
-    <!-- Edit Subject Modal -->
-    <div id="edit-subject-modal"
-        class="hidden fixed inset-0 bg-black/50 z-[80] flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-3xl w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="document.getElementById('edit-subject-modal').classList.add('hidden')"
-                class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i class="fas fa-times"></i></button>
-            <h3 class="text-xl font-bold text-slate-800 mb-1">Edit Subject</h3>
-            <p class="text-slate-400 text-sm mb-6">Modify subject details.</p>
-
-            <form id="edit-subject-form" onsubmit="event.preventDefault(); updateSubject();" class="space-y-6">
-                <input type="hidden" name="id" id="edit_subject_id">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Name</label>
-                        <input type="text" name="name" id="edit_subject_name" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Subject Code</label>
-                        <input type="text" name="code" id="edit_subject_code" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
-                        <select name="department_id" id="edit_subject_dept" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                            <?php
-                            $dept_query = "SELECT * FROM departments ORDER BY name ASC";
-                            $dept_result = $conn->query($dept_query);
-                            if ($dept_result->num_rows > 0) {
-                                while ($d = $dept_result->fetch_assoc()) {
-                                    echo "<option value='" . $d['id'] . "'>" . $d['name'] . "</option>";
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Credits</label>
-                        <input type="number" name="credits" id="edit_subject_credits" value="3" min="1" max="10"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                    </div>
-                </div>
-
-                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                    <h4 class="text-sm font-bold text-indigo-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-layer-group"></i> Batch & Class Details (Optional)
-                    </h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Batch Year</label>
-                            <input type="text" name="batch_year" id="edit_subject_batch" placeholder="e.g. 2024-2028"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Academic
-                                Year</label>
-                            <select name="academic_year" id="edit_subject_year"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- Select --</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Semester</label>
-                            <select name="semester" id="edit_subject_sem"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- Select --</option>
-                                <option value="1">Odd (1,3,5,7)</option>
-                                <option value="2">Even (2,4,6,8)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-1">Section</label>
-                            <select name="section_id" id="edit_subject_sec"
-                                class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-indigo-900">
-                                <option value="">-- General / Common --</option>
-                                <?php
-                                $sec_q = "SELECT s.id, s.section_name, d.code FROM sections s JOIN departments d ON s.department_id = d.id ORDER BY d.code, s.section_name";
-                                $sec_r = $conn->query($sec_q);
-                                if ($sec_r->num_rows > 0) {
-                                    while ($sec = $sec_r->fetch_assoc()) {
-                                        echo "<option value='" . $sec['id'] . "'>" . $sec['code'] . " - " . $sec['section_name'] . "</option>";
-                                    }
-                                }
-                                ?>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" id="btn-update-subject"
-                    class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition transform active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
-            </form>
-        </div>
-    </div>
-
     <script>
         function showSection(sectionId) {
             // Update URL hash without jumping if possible
@@ -1746,7 +1588,6 @@ if ($conn) {
                 'password': 'Change Password',
                 'user-manage': 'User Management',
                 'view-dept-wise': 'View Timetable (Department)',
-                'view-fac-wise': 'View Timetable (Faculty)',
                 'reports': 'Reports & Analytics'
             };
             const titleEl = document.getElementById('section-title');
@@ -2223,26 +2064,21 @@ if ($conn) {
             fetch('actions/get_generation_status.php')
                 .then(r => r.json())
                 .then(d => {
-                    const updateSelect = (id) => {
-                        const sel = document.getElementById(id);
-                        if (!sel) return;
-                        sel.innerHTML = '<option value="">Select Version...</option>';
-                        if (d.active) {
-                            const opt = document.createElement('option');
-                            opt.value = d.active.id;
-                            opt.innerText = `Active: ${d.active.version_name} (${new Date(d.active.created_at).toLocaleDateString()})`;
-                            opt.selected = true;
-                            sel.appendChild(opt);
-                        }
-                        if (d.draft) {
-                            const opt = document.createElement('option');
-                            opt.value = d.draft.id;
-                            opt.innerText = `Draft: ${d.draft.version_name} (${new Date(d.draft.created_at).toLocaleDateString()})`;
-                            sel.appendChild(opt);
-                        }
-                    };
-                    updateSelect('view-version-id');
-                    updateSelect('view-fac-version-id');
+                    const sel = document.getElementById('view-version-id');
+                    sel.innerHTML = '<option value="">Select Version...</option>';
+                    if (d.active) {
+                        const opt = document.createElement('option');
+                        opt.value = d.active.id;
+                        opt.innerText = `Active: ${d.active.version_name} (${new Date(d.active.created_at).toLocaleDateString()})`;
+                        opt.selected = true; // Auto select active
+                        sel.appendChild(opt);
+                    }
+                    if (d.draft) {
+                        const opt = document.createElement('option');
+                        opt.value = d.draft.id;
+                        opt.innerText = `Draft: ${d.draft.version_name} (${new Date(d.draft.created_at).toLocaleDateString()})`;
+                        sel.appendChild(opt);
+                    }
                 });
         }
 
@@ -2513,7 +2349,7 @@ if ($conn) {
                             <td class="px-6 py-4 text-sm font-bold text-indigo-600">${sub.credits}</td>
                             <td class="px-6 py-4 text-sm text-slate-500">${details.join(' • ')}</td>
                             <td class="px-6 py-4 text-right">
-                                <button onclick='openEditSubjectModal(${JSON.stringify(sub)})' class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
+                                <button class="text-slate-400 hover:text-indigo-600 mx-1 p-2 rounded-lg hover:bg-indigo-50 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteSubject(${sub.id}, this)" class="text-slate-400 hover:text-red-500 mx-1 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
                             </td>
                         `;
@@ -2664,58 +2500,6 @@ if ($conn) {
                 });
         }
 
-        function openEditSubjectModal(sub) {
-            const modal = document.getElementById('edit-subject-modal');
-            const form = document.getElementById('edit-subject-form');
-
-            // Populate form
-            document.getElementById('edit_subject_id').value = sub.id;
-            document.getElementById('edit_subject_name').value = sub.name;
-            document.getElementById('edit_subject_code').value = sub.code;
-            document.getElementById('edit_subject_credits').value = sub.credits;
-            document.getElementById('edit_subject_dept').value = sub.department_id;
-            document.getElementById('edit_subject_batch').value = sub.batch_year || '';
-
-            // Optional Fields
-            if (sub.academic_year) document.getElementById('edit_subject_year').value = sub.academic_year;
-            if (sub.semester) document.getElementById('edit_subject_sem').value = sub.semester;
-            if (sub.section_id) document.getElementById('edit_subject_sec').value = sub.section_id;
-
-            modal.classList.remove('hidden');
-        }
-
-        function updateSubject() {
-            const form = document.getElementById('edit-subject-form');
-            const btn = document.getElementById('btn-update-subject');
-            const originalHTML = btn.innerHTML;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-            const fd = new FormData(form);
-
-            fetch('actions/update_subject.php', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-
-                    if (res.success) {
-                        showToast(res.message, 'success');
-                        document.getElementById('edit-subject-modal').classList.add('hidden');
-                        setTimeout(() => location.reload(), 1000); // Reload to reflect changes
-                    } else {
-                        showToast(res.message, 'error');
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    showToast('Error updating subject', 'error');
-                });
-        }
-
-
 
         function updateProfile(form) {
             const btn = form.querySelector('button[type="submit"]');
@@ -2864,8 +2648,10 @@ if ($conn) {
         function openEditModal(entry) { currentEditEntryId=entry.id; // Populate Dropdowns const
         subSel=document.querySelector('select[name="edit_subject_id" ]'); const
         facSel=document.querySelector('select[name="edit_faculty_id" ]'); const
-        roomSel=document.querySelector('select[name="edit_room_id" ]'); const
-        viewDeptId=document.getElementById('view-dept-id').value; subSel.innerHTML='' ; ALL_SUBJECTS.forEach(s=> {
+        roomSel=document.querySelector('select[name="edit_room_id" ]'); const viewDeptId = document.getElementById('view-dept-id').value;
+
+        subSel.innerHTML='' ; 
+        ALL_SUBJECTS.forEach(s=> {
         if (viewDeptId && s.department_id != viewDeptId) return;
 
         const opt = document.createElement('option');
@@ -2985,159 +2771,11 @@ if ($conn) {
             container.innerHTML = html;
             }
 
-            // --- Faculty View Logic ---
-            function loadFacultyTimetable() {
-            const vId = document.getElementById('view-fac-version-id').value ||
-            document.getElementById('view-version-id').value;
-            const fId = document.getElementById('view-faculty-id').value;
-
-            // Sync versions if needed
-            if (!document.getElementById('view-fac-version-id').value && vId) {
-            // Try to populate if empty
-            loadViewVersions();
-            // Small delay or just proceed
-            }
-
-            if (!vId || !fId) {
-            showToast('Please select Version and Faculty', 'info');
-            return;
-            }
-
-            const btn = document.querySelector('button[onclick="loadFacultyTimetable()"]');
-            const originalInfo = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-
-            fetch(`actions/fetch_faculty_timetable.php?version_id=${vId}&faculty_id=${fId}`)
-            .then(r => r.json())
-            .then(d => {
-            btn.disabled = false;
-            btn.innerHTML = originalInfo;
-
-            if (d.success) {
-            renderFacultyGrid(d.entries);
-            renderFacultyAllocations(d.allocations);
-            document.getElementById('view-fac-allocations-wrapper').classList.remove('hidden');
-            } else {
-            showToast(d.message, 'error');
-            }
+            // Lazy load trigger
+            window.addEventListener('hashchange', () => {
+            if(window.location.hash === '#reports') loadWorkloadReport();
             });
-            }
-
-            function renderFacultyGrid(entries) {
-            const tbody = document.getElementById('view-fac-grid-body');
-            const container = document.getElementById('view-fac-grid-container');
-            const empty = document.getElementById('view-fac-empty-state');
-
-            tbody.innerHTML = '';
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-            days.forEach(day => {
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 transition border-b border-slate-50 last:border-b-0';
-            let html = `<td class="px-6 py-6 font-bold text-slate-800 bg-white sticky left-0 border-r border-slate-100">
-                ${day}</td>`;
-
-            for (let i = 1; i <= 4; i++) { html +=getFacultyCellHtml(day, i, entries); } html +=`<td
-                class="px-2 py-4 text-center bg-slate-50/50">
-                <div class="h-full w-px mx-auto bg-slate-200 dashed"></div>
-                </td>`;
-                for (let i = 5; i <= 7; i++) { html +=getFacultyCellHtml(day, i, entries); } tr.innerHTML=html;
-                    tbody.appendChild(tr); }); container.classList.remove('hidden'); empty.classList.add('hidden'); }
-                    function getFacultyCellHtml(day, period, entries) { const key=`${day}-${period}`; const
-                    entry=entries[key]; if (entry) { return ` <td
-                    class="px-4 py-4 align-top h-32 w-48 border-r border-slate-100 last:border-r-0">
-                    <div
-                        class="h-full flex flex-col justify-between group cursor-pointer hover:bg-white p-2 rounded-xl transition border border-transparent hover:border-indigo-100 hover:shadow-sm">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-1 block">
-                                ${entry.subject_code}
-                            </span>
-                            <h4 class="text-sm font-bold text-slate-800 leading-tight mb-2 line-clamp-2"
-                                title="${entry.subject_name}">
-                                ${entry.subject_name}
-                            </h4>
-                        </div>
-                        <div class="border-t border-slate-100 pt-2 mt-2">
-                            <div class="flex items-center gap-2 mb-1">
-                                <div
-                                    class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <span class="text-xs text-slate-500 font-medium truncate max-w-[100px]"
-                                    title="${entry.section}">
-                                    ${entry.section}
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </div>
-                                <span class="text-xs text-slate-500 font-medium">
-                                    ${entry.room || 'N/A'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    </td>
-                    `;
-                    } else {
-                    return `
-                    <td class="px-4 py-4 align-top h-32 border-r border-slate-100 last:border-r-0">
-                        <div
-                            class="h-full rounded-xl border border-dashed border-slate-100 flex items-center justify-center text-slate-200">
-                            <span class="text-xs">Free</span>
-                        </div>
-                    </td>`;
-                    }
-                    }
-
-                    // Faculty Allocations Renderer (Clean Version)
-                    function renderFacultyAllocations(allocations) {
-                    const containerId = 'view-fac-allocations-list';
-                    const container = document.getElementById(containerId);
-                    if (!container) return;
-                    container.innerHTML = '';
-
-                    if (!allocations || allocations.length === 0) {
-                    container.innerHTML = '<p class="col-span-3 text-center text-slate-400">No subjects allocated.</p>';
-                    return;
-                    }
-
-                    allocations.forEach(a => {
-                    const card = document.createElement('div');
-                    card.className = 'p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start
-                    justify-between hover:shadow-sm transition';
-
-                    // Safe property access
-                    const subjectCode = a.subject_code || 'N/A';
-                    const subjectName = a.subject_name || 'Unknown Subject';
-                    const sectionDisplay = a.section || a.section_name || 'All Sections';
-                    const hours = a.weekly_hours || 0;
-
-                    card.innerHTML = `
-                    <div>
-                        <span
-                            class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1 block">${subjectCode}</span>
-                        <h5 class="font-bold text-slate-800 text-sm mb-1">${subjectName}</h5>
-                        <div class="flex gap-2 text-xs text-slate-500">
-                            <span
-                                class="bg-white px-2 py-0.5 rounded border border-slate-200 text-[10px] font-bold uppercase">${sectionDisplay}</span>
-                            <span
-                                class="bg-white px-2 py-0.5 rounded border border-slate-200 text-[10px] font-bold">${hours}
-                                Hrs/Wk</span>
-                        </div>
-                    </div>
-                    `;
-                    container.appendChild(card);
-                    });
-                    document.getElementById(containerId.replace('list', 'wrapper')).classList.remove('hidden');
-                    }
-                    // Lazy load trigger
-                    window.addEventListener('hashchange', () => {
-                    if(window.location.hash === '#reports') loadWorkloadReport();});
-                    </script>
+            </script>
 </body>
 
 </html>

@@ -7,19 +7,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
+header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $current = $_POST['current_password'];
-    $new = $_POST['new_password'];
-    $confirm = $_POST['confirm_password'];
+    $current = $_POST['current_password'] ?? '';
+    $new = $_POST['new_password'] ?? '';
+    $confirm = $_POST['confirm_password'] ?? '';
     $id = $_SESSION['user_id'];
 
     if (empty($current) || empty($new) || empty($confirm)) {
-        header("Location: ../admin_dashboard.php?error=empty_fields_pass");
+        echo json_encode(['success' => false, 'message' => 'All fields are required.']);
         exit();
     }
 
     if ($new !== $confirm) {
-        header("Location: ../admin_dashboard.php?error=password_mismatch");
+        echo json_encode(['success' => false, 'message' => 'New passwords do not match.']);
         exit();
     }
 
@@ -37,12 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update->bind_param("si", $new_hashed, $id);
 
         if ($update->execute()) {
-            header("Location: ../admin_dashboard.php?success=password_changed");
+            echo json_encode(['success' => true, 'message' => 'Password changed successfully!']);
         } else {
-            header("Location: ../admin_dashboard.php?error=db_error");
+            echo json_encode(['success' => false, 'message' => 'Database error.']);
         }
     } else {
-        header("Location: ../admin_dashboard.php?error=wrong_current_password");
+        echo json_encode(['success' => false, 'message' => 'Incorrect current password.']);
     }
 }
 ?>
