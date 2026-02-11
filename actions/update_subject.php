@@ -29,32 +29,49 @@ try {
     }
 
     // Get Inputs
+    $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
     $name = trim($_POST['name'] ?? '');
     $code = trim($_POST['code'] ?? '');
     $department_id = trim($_POST['department_id'] ?? '');
     $credits = trim($_POST['credits'] ?? '3');
     $batch_year = trim($_POST['batch_year'] ?? '');
 
-    // New Inputs
+    // Optional Inputs
     $academic_year = isset($_POST['academic_year']) ? (int) $_POST['academic_year'] : null;
     $semester = isset($_POST['semester']) ? (int) $_POST['semester'] : null;
     $section_id = !empty($_POST['section_id']) ? (int) $_POST['section_id'] : null;
 
-    // Prepare Statement
-    $query = "INSERT INTO subjects (name, code, department_id, credits, batch_year, academic_year, semester, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($query);
+    if ($id <= 0) {
+        throw new Exception("Invalid Subject ID.");
+    }
 
+    if (empty($name) || empty($code) || empty($department_id)) {
+        throw new Exception("Name, Code and Department are required.");
+    }
+
+    // Duplicate Check (Name or Code in same Dept, excluding current ID)
+    $dupStmt = $conn->prepare("SELECT id FROM subjects WHERE (name = ? OR code = ?) AND department_id = ? AND id != ?");
+    $dupStmt->bind_param("ssii", $name, $code, $department_id, $id);
+    $dupStmt->execute();
+    $dupStmt->store_result();
+    if ($dupStmt->num_rows > 0) {
+        throw new Exception("Subject Name or Code already exists in this Department.");
+    }
+    $dupStmt->close();
+
+    // Prepare Update
+    $stmt = $conn->prepare("UPDATE subjects SET name = ?, code = ?, department_id = ?, credits = ?, batch_year = ?, academic_year = ?, semester = ?, section_id = ? WHERE id = ?");
     if (!$stmt) {
         throw new Exception("Database Prepare Error: " . $conn->error);
     }
 
-    $stmt->bind_param("ssiisiii", $name, $code, $department_id, $credits, $batch_year, $academic_year, $semester, $section_id);
+    $stmt->bind_param("ssiisiiii", $name, $code, $department_id, $credits, $batch_year, $academic_year, $semester, $section_id, $id);
 
     if ($stmt->execute()) {
         $response['success'] = true;
-        $response['message'] = 'Subject added successfully.';
+        $response['message'] = 'Subject updated successfully.';
         $response['subject'] = [
-            'id' => $conn->insert_id,
+            'id' => $id,
             'name' => $name,
             'code' => $code,
             'department_id' => $department_id,

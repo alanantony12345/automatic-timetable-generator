@@ -245,7 +245,6 @@ $stmt->close();
             </nav>
 
             <div class="mt-auto space-y-4">
-<<<<<<< HEAD
                 <?php
                 // Logic to find next upcoming class
                 $next_class = null;
@@ -283,12 +282,6 @@ $stmt->close();
                         <h5 class="text-sm font-bold text-gray-800">No more classes</h5>
                         <p class="text-xs text-gray-500">You are free for the day!</p>
                     <?php endif; ?>
-=======
-                <div class="bg-indigo-50 rounded-2xl p-4">
-                    <p class="text-[10px] font-bold text-indigo-400 uppercase mb-2">Upcoming Class</p>
-                    <h5 class="text-sm font-bold text-gray-800">Advanced Algorithms</h5>
-                    <p class="text-xs text-gray-500">Hall 402 • 11:30 AM</p>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                 </div>
                 <a href="logout.php"
                     class="flex items-center gap-3 px-5 py-3 rounded-xl text-red-500 hover:bg-red-50 transition font-bold">
@@ -308,14 +301,10 @@ $stmt->close();
                         <?php echo explode(' ', $_SESSION['user_name'])[0]; ?>!
                     </span> 👋
                 </h1>
-<<<<<<< HEAD
                 <p class="text-gray-500 font-medium">
                     <?php echo $section_details ? htmlspecialchars($section_details) : "Semester $sem • Year $year"; ?>
                     • Academic Year <?php echo date('Y') . '-' . (date('Y') + 1); ?>
                 </p>
-=======
-                <p class="text-gray-500 font-medium">Semester 4 • Academic Year 2024-25</p>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             </div>
             <div class="flex items-center gap-4">
                 <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-3">
@@ -331,52 +320,10 @@ $stmt->close();
             </div>
         </div>
 
-<<<<<<< HEAD
         <!-- Stats Grid (Removed as per user request to focus on timetable) -->
         <div class="mb-10">
             <h2 class="text-2xl font-bold text-gray-800">My Timetable</h2>
             <p class="text-gray-500">View your active class schedule below.</p>
-=======
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-indigo-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                    <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">+2.4%</span>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">88.5%</h3>
-                <p class="text-sm text-gray-500 font-medium">Overall Attendance</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-purple-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">24h</h3>
-                <p class="text-sm text-gray-500 font-medium">Weekly Lectures</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-pink-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center">
-                        <i class="fas fa-star"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">8.42</h3>
-                <p class="text-sm text-gray-500 font-medium">Current CGPA</p>
-            </div>
-            <div class="glass-card p-6 rounded-3xl border-b-4 border-blue-500">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                </div>
-                <h3 class="text-2xl font-black text-gray-800">04</h3>
-                <p class="text-sm text-gray-500 font-medium">Pending Tasks</p>
-            </div>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
         </div>
 
         <!-- Timetable & Content -->
@@ -400,7 +347,6 @@ $stmt->close();
                     </div>
 
                     <div class="overflow-x-auto">
-<<<<<<< HEAD
                         <div class="timetable-grid"
                             style="min-width: 800px; grid-template-columns: 100px repeat(<?php echo count($days_list); ?>, 1fr);">
                             <!-- Header -->
@@ -480,75 +426,6 @@ $stmt->close();
                                 $start_time += 3600; // Increment 1 hour
                             endfor;
                             ?>
-=======
-                        <div class="timetable-grid" style="min-width: 800px;">
-                            <!-- Header -->
-                            <div class="timetable-header">TIME</div>
-                            <div class="timetable-header">MON</div>
-                            <div class="timetable-header">TUE</div>
-                            <div class="timetable-header">WED</div>
-                            <div class="timetable-header">THU</div>
-                            <div class="timetable-header">FRI</div>
-
-                            <!-- Row 1: 09:00 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Start</span>
-                                <span class="text-sm font-black text-gray-700">09:00 AM</span>
-                            </div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-indigo-50 border-l-4 border-indigo-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-indigo-700">DS-401</h6>
-                                    <p class="text-[10px] text-gray-600">Data Science</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-purple-700">CO-202</h6>
-                                    <p class="text-[10px] text-gray-600">Computer Org</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-indigo-50 border-l-4 border-indigo-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-indigo-700">DS-401</h6>
-                                    <p class="text-[10px] text-gray-600">Data Science</p>
-                                </div>
-                            </div>
-
-                            <!-- Row 2: 10:30 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Break</span>
-                                <span class="text-sm font-black text-gray-700">10:30 AM</span>
-                            </div>
-                            <div
-                                class="timetable-cell bg-gray-50/50 flex items-center justify-center col-span-5 italic text-gray-400 text-sm font-medium">
-                                Short Recess </div>
-
-                            <!-- Row 3: 11:00 -->
-                            <div
-                                class="timetable-cell text-center flex flex-col justify-center border-r border-gray-100">
-                                <span class="text-xs font-bold text-gray-400 uppercase">Slot</span>
-                                <span class="text-sm font-black text-gray-700">11:00 AM</span>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-pink-50 border-l-4 border-pink-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-pink-700">MA-305</h6>
-                                    <p class="text-[10px] text-gray-600">Math III</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
-                            <div class="timetable-cell">
-                                <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                                    <h6 class="text-xs font-bold text-blue-700">CS-405</h6>
-                                    <p class="text-[10px] text-gray-600">Algorithms</p>
-                                </div>
-                            </div>
-                            <div class="timetable-cell"></div>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
                         </div>
                     </div>
                 </div>
@@ -598,46 +475,7 @@ $stmt->close();
                         All Updates</button>
                 </div>
 
-<<<<<<< HEAD
                 <!-- Learning Progress Removed -->
-=======
-                <!-- Learning Progress -->
-                <div
-                    class="glass-card rounded-3xl p-6 bg-gradient-to-br from-indigo-50 to-white text-gray-800 border overflow-hidden relative group">
-                    <div
-                        class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-100 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700">
-                    </div>
-                    <h4 class="text-indigo-500 text-sm font-bold uppercase tracking-widest mb-4">Course Progress</h4>
-                    <div class="space-y-6 relative z-10">
-                        <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
-                                <span>Computer Architecture</span>
-                                <span>75%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 75%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs font-bold mb-2 text-gray-700">
-                                <span>Database Management</span>
-                                <span>45%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-indigo-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-500 rounded-full" style="width: 45%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8 relative z-10">
-                        <p class="text-[10px] text-gray-400 mb-2 font-bold uppercase">CURRENT GOAL</p>
-                        <h5 class="text-lg font-black tracking-tight mb-4 text-gray-800">Mastering Microservices
-                            Architecture</h5>
-                        <button
-                            class="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 transform hover:-translate-y-1 transition-all">Keep
-                            Learning</button>
-                    </div>
-                </div>
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             </div>
         </div>
     </main>

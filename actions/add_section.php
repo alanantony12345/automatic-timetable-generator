@@ -24,7 +24,7 @@ try {
         throw new Exception("Please fill in all required fields.");
     }
 
-<<<<<<< HEAD
+
     // Check for Duplicate
     $check = $conn->prepare("SELECT id FROM sections WHERE department_id = ? AND year = ? AND semester = ? AND section_name = ?");
     $check->bind_param("iiis", $department_id, $year, $semester, $section_name);
@@ -33,8 +33,7 @@ try {
         throw new Exception("This section mapping already exists.");
     }
 
-=======
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
+
     $stmt = $conn->prepare("INSERT INTO sections (department_id, year, semester, section_name, student_strength) VALUES (?, ?, ?, ?, ?)");
     $stmt->bind_param("iiisi", $department_id, $year, $semester, $section_name, $student_strength);
 

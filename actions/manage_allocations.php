@@ -15,7 +15,6 @@ try {
     if ($action === 'add_allocation') {
         $faculty_ids = $_POST['faculty_id'] ?? [];
         $subject_ids = $_POST['subject_id'] ?? [];
-<<<<<<< HEAD
 
         // Handle potential arrays from multiple rows (we take the first one for now as per legacy behavior)
         $type = $_POST['subject_type'];
@@ -33,16 +32,11 @@ try {
         $section_id = $_POST['section_id'] ?? null;
         if ($section_id === '')
             $section_id = null;
-=======
-        $type = $_POST['subject_type'] ?? 'Theory';
-        $weekly_hours = $_POST['weekly_hours'] ?? 4;
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
 
         if (empty($faculty_ids) || empty($subject_ids)) {
             throw new Exception("Please select at least one faculty and one subject.");
         }
 
-<<<<<<< HEAD
         foreach ($subject_ids as $sid) {
             // "Only one subject can be allocated only one faculty"
             // If section_id is present, we enforce 1:1 for that section.
@@ -84,14 +78,6 @@ try {
 
                 // Break after first faculty to strictly enforce single faculty selection if multiple are sent
                 break;
-=======
-        foreach ($faculty_ids as $fid) {
-            foreach ($subject_ids as $sid) {
-                $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_id, type, weekly_hours) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE type=?, weekly_hours=?");
-                $stmt->bind_param("iisiis", $fid, $sid, $type, $weekly_hours, $type, $weekly_hours);
-                $stmt->execute();
-                $stmt->close();
->>>>>>> 5b4dce60a375ebbcc94fdc368786cc610798426a
             }
         }
 

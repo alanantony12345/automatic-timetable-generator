@@ -21,8 +21,20 @@ try {
         throw new Exception("Department name is required.");
     }
 
-    $stmt = $conn->prepare("INSERT INTO departments (name, code) VALUES (?, ?) ON DUPLICATE KEY UPDATE code = ?");
-    $stmt->bind_param("sss", $name, $code, $code);
+    // Check if department exists (Case-Insensitive)
+    $checkStmt = $conn->prepare("SELECT id FROM departments WHERE name = ?");
+    $checkStmt->bind_param("s", $name);
+    $checkStmt->execute();
+    $checkStmt->store_result();
+
+    if ($checkStmt->num_rows > 0) {
+        $checkStmt->close();
+        throw new Exception("Department already exists. Please add a unique department.");
+    }
+    $checkStmt->close();
+
+    $stmt = $conn->prepare("INSERT INTO departments (name, code) VALUES (?, ?)");
+    $stmt->bind_param("ss", $name, $code);
 
     if ($stmt->execute()) {
         $new_id = $conn->insert_id;
