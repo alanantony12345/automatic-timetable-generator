@@ -30,19 +30,6 @@ $sql = "CREATE TABLE IF NOT EXISTS `timetable_versions` (
 
 if ($conn->query($sql)) {
     $success[] = "✅ Table 'timetable_versions' created successfully";
-
-    // Check and add 'status' column if missing (Migration Fix)
-    $col_check = $conn->query("SHOW COLUMNS FROM `timetable_versions` LIKE 'status'");
-    if ($col_check && $col_check->num_rows == 0) {
-        $alter_sql = "ALTER TABLE `timetable_versions` ADD COLUMN `status` ENUM('Draft', 'Active', 'Archived') DEFAULT 'Draft' AFTER `semester`";
-        if ($conn->query($alter_sql)) {
-            $success[] = "✅ Column 'status' added to 'timetable_versions'";
-            // Add index
-            $conn->query("ALTER TABLE `timetable_versions` ADD INDEX `idx_status` (`status`)");
-        } else {
-            $errors[] = "❌ Error adding 'status' column: " . $conn->error;
-        }
-    }
 } else {
     $errors[] = "❌ Error creating timetable_versions: " . $conn->error;
 }
